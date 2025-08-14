@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Bingo Card System",
   "dependencies": {
-    "@netlify/blobs": "^7.0.0"
+    "@netlify/blobs": "^7.0.0",
+    "node-fetch": "^3.3.0"
   }
 }
