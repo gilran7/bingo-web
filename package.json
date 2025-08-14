@@ -6,7 +6,8 @@
   "engines": {
     "node": ">=20"
   },
-  "dependencies": {
-    "@netlify/blobs": "^10.0.0"
+    "dependencies": {
+    "@netlify/functions": "^2.5.1",
+    "@netlify/blobs": "^5.0.0"
   }
 }
