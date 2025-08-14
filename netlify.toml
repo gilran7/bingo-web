@@ -1,15 +1,20 @@
 # ======================================================
-# INICIO DE LA CORRECCIÓN
+# CONFIGURACIÓN DE CONSTRUCCIÓN Y DESPLIEGUE
 # ======================================================
-[functions]
-  # CORRECCIÓN: La ruta correcta es simplemente "netlify/", porque
-  # esa es la carpeta en la raíz que contiene todas nuestras funciones.
-  directory = "netlify/" 
-  node_bundler = "esbuild"
-# ======================================================
-# FIN DE LA CORRECCIÓN
-# ======================================================
+[build]
+  # El directorio que contiene tu sitio público (index.html, etc.)
+  publish = "Bingo Web/"
+  
+  # El directorio que contiene tus funciones de Netlify
+  functions = "netlify/"
 
+# Configuración específica de las funciones
+[functions]
+  node_bundler = "esbuild"
+
+# ======================================================
+# REGLA DE REDIRECCIÓN PARA LA API
+# ======================================================
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
