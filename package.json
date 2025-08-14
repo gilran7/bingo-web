@@ -2,12 +2,6 @@
   "name": "proyectobingo",
   "version": "1.0.0",
   "description": "Bingo Card System",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@netlify/blobs": "^7.0.0"
   }
