@@ -1,9 +1,8 @@
 [build]
-  command = "echo 'Build command goes here'"
   publish = "Bingo Web"
-  functions = "netlify"
+  functions = "api"
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/*"
+  to = "/index.html"
   status = 200
