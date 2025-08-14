@@ -2,8 +2,11 @@
   "name": "proyectobingo",
   "version": "1.0.0",
   "description": "Bingo Card System",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
-    "@netlify/blobs": "^7.0.0",
-    "node-fetch": "^3.3.0"
+    "@netlify/blobs": "^7.0.0"
   }
 }

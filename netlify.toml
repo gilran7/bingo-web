@@ -1,12 +1,13 @@
 [build]
-  # COMANDO EXPLÍCITO PARA INSTALAR LAS DEPENDENCIAS DEL package.json
   command = "npm install"
-  
-  # Directorio público
   publish = "Bingo Web"
-  
-  # Directorio de funciones
   functions = "api"
+
+[functions]
+  # Usamos esbuild para ESM y mejor tree-shaking
+  node_bundler = "esbuild"
+  # Forzamos Node 18+ en funciones (Blobs lo requiere)
+  node_version = "18"
 
 [[redirects]]
   from = "/*"

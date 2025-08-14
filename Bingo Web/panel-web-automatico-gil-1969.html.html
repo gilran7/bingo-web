@@ -10,10 +10,8 @@
     <h1>BINGO AUTOMÁTICO PROFESIONAL</h1>
 
     <div class="juego-container">
-
-        <!-- Columna 1: Panel de Control Izquierdo (AHORA SOLO EL TABLERO) -->
+        <!-- Columna 1 -->
         <div class="panel-izquierdo">
-            <!-- CORRECCIÓN: Se han añadido los contenedores que el script necesita para dibujar la tabla -->
             <div id="tabla-maestra">
                 <div id="contenedor-columnas-letras"></div>
                 <div id="contenedor-numeros-maestros"></div>
@@ -21,15 +19,14 @@
             <button id="boton-anadir-carton">Añadir Cartón</button>
             <button id="boton-verificar-duplicados">Verificar Duplicados</button>
             <button id="boton-borrar-cartones">Borrar Todos los Cartones</button>
-            <!-- ====================================================== -->
-            <!-- BOTÓN PARA GUARDAR EN LA BASE DE DATOS -->
+
+            <!-- Botón guardar -->
             <button id="guardar-cartones-almacen" style="background-color: #28a745; color: white; width: 100%; padding: 10px; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px;">
                 Guardar Cartones en Almacén
             </button>
-            <!-- ====================================================== -->
         </div>
 
-        <!-- Columna 2: Panel de Control y Cartones -->
+        <!-- Columna 2 -->
         <div class="panel-derecho">
             <div class="seccion-superior-fija">
                 <div class="controles-superiores">
@@ -49,7 +46,6 @@
                             </div>
                         </div>
                     </div>
-                    
                     <div id="control-modo">
                         <button id="boton-modo">Cambiar a Modo Manual</button>
                         <span id="display-modo">Modo: Automático</span>
@@ -83,13 +79,11 @@
         </div>
     </div>
 
-    <!-- Modal (OJO: Se ha eliminado el botón "Siguiente Ganador" que ya no se usa) -->
+    <!-- Modal -->
     <div id="modal-ganador-backdrop" class="hidden">
         <div id="modal-ganador-content">
             <button id="modal-close-button">&times;</button>
             <div id="modal-carton-container"></div>
-            <!-- El botón "Siguiente Ganador" ha sido eliminado del modal,
-                 ya que la nueva lógica está en el botón principal "Mostrar Ganadores" -->
         </div>
     </div>
 
@@ -97,12 +91,10 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-
             const saveButton = document.getElementById('guardar-cartones-almacen');
 
             if (saveButton) {
                 saveButton.addEventListener('click', async () => {
-                    console.log("Botón de guardar presionado. Recolectando datos...");
                     const cardsData = [];
                     const cardElements = document.querySelectorAll('.card'); 
 
@@ -110,60 +102,43 @@
                         const numbers = Array.from(cardElement.querySelectorAll('td'))
                                            .map(td => parseInt(td.innerText, 10))
                                            .filter(num => !isNaN(num));
-                        
+
                         if(numbers.length > 0) {
-                            cardsData.push({ id: index + 1, numbers: numbers });
+                            cardsData.push({ 
+                                id: index + 1, 
+                                name: `Carton_${String(index + 1).padStart(3, '0')}`,
+                                numbers: numbers 
+                            });
                         }
                     });
-                    
-                    console.log(`Se recolectaron ${cardsData.length} cartones válidos.`);
 
                     if (cardsData.length === 0) {
-                        alert('No se encontraron cartones válidos en la página para guardar.');
+                        alert('No se encontraron cartones válidos para guardar.');
                         return;
                     }
 
-                    alert('Guardando todos los cartones en el servidor... Por favor, espera un momento.');
+                    alert('Guardando todos los cartones en el servidor...');
 
                     try {
-                        // ======================================================
-                        // INICIO DE LA CORRECCIÓN DE PRUEBA
-                        // Llamamos a la función por su ruta completa y real.
-                        // ======================================================
                         const response = await fetch('/.netlify/functions/save-cards', {
-                        // ======================================================
-                        // FIN DE LA CORRECCIÓN DE PRUEBA
-                        // ======================================================
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(cardsData),
                         });
 
-                        // Si la respuesta no es JSON, la leemos como texto para ver qué es
-                        if (!response.headers.get("content-type")?.includes("application/json")) {
-                            const textError = await response.text();
-                            throw new Error(`El servidor no respondió con JSON. Respuesta: ${textError}`);
-                        }
-
                         const result = await response.json();
-
                         if (response.ok) {
-                            alert('¡ÉXITO! Los cartones se han guardado correctamente en el almacén.');
+                            alert('¡ÉXITO! Los cartones se han guardado en el almacén.');
                         } else {
-                            throw new Error(result.error || 'Ocurrió un error desconocido en el servidor.');
+                            throw new Error(result.error || 'Error desconocido en el servidor.');
                         }
                     } catch (error) {
                         console.error('Error al guardar los cartones:', error);
-                        alert(`Hubo un error al guardar los cartones. Por favor, intenta de nuevo.\nDetalles: ${error.message}`);
+                        alert(`Hubo un error al guardar los cartones: ${error.message}`);
                     }
                 });
-            } else {
-                console.error("No se encontró el botón con id 'guardar-cartones-almacen'");
             }
         });
     </script>
-
 </body>
 </html>

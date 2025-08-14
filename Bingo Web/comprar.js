@@ -1,59 +1,112 @@
-document.addEventListener('DOMContentLoaded', async () => {
-    const container = document.getElementById('cartones-disponibles-container');
-    const listaCarrito = document.getElementById('lista-carrito');
-    const totalPagarDisplay = document.getElementById('total-pagar');
-    const cartonesSeleccionadosInput = document.getElementById('cartones-seleccionados-input');
-    const PRECIO_POR_CARTON = 2.00;
-    
-    let carritoLocal = JSON.parse(localStorage.getItem('bingoCarritoLocal')) || [];
+<script>
+const API = path => `/.netlify/functions/${path}`;
 
-    async function inicializarTienda() {
-        container.innerHTML = '<p>Cargando cartones disponibles...</p>';
-        
-        try {
-            const estadoGuardado = localStorage.getItem('bingoGameState');
-            if (!estadoGuardado) throw new Error('No hay cartones configurados. Ve al panel de admin para crearlos.');
-            
-            const todosLosCartones = JSON.parse(estadoGuardado).cartones;
-            const cartonesActivos = todosLosCartones.filter(c => c.isActive);
+async function fetchAvailable() {
+  const res = await fetch(API('get-available-cards'));
+  const data = await res.json();
+  return data.cards || [];
+}
 
-            if(cartonesActivos.length === 0) {
-                container.innerHTML = '<p class="mensaje-feedback">No hay cartones activos para la venta.</p>';
-                return;
-            }
+function renderCards(container, cards) {
+  container.innerHTML = '';
+  for (const c of cards) {
+    const btn = document.createElement('button');
+    btn.textContent = `Cartón ${c.id}`;
+    btn.onclick = () => reserve(c.id);
+    btn.className = 'card-btn';
+    container.appendChild(btn);
+  }
+}
 
-            const reservas = await obtenerReservas(); // Esta es ahora la única fuente de verdad
-            
-            // Filtramos los cartones que NO están en la lista de reservas
-            const cartonesALaVenta = cartonesActivos.filter(carton => !reservas.has(carton.id));
+let activeTimer = null;
 
-            if(cartonesALaVenta.length === 0) {
-                container.innerHTML = '<p class="mensaje-feedback">¡Todos los cartones activos han sido vendidos!</p>';
-                return;
-            }
-
-            dibujarCartones(cartonesALaVenta, new Set()); // Pasamos un set vacío porque ya hemos filtrado
-
-        } catch (error) {
-            console.error("Error al inicializar tienda:", error);
-            container.innerHTML = `<p class="mensaje-error">${error.message}</p>`;
-        }
+function startCountdown(msUntil, onExpire) {
+  const el = document.getElementById('status');
+  if (activeTimer) clearInterval(activeTimer);
+  function tick() {
+    const left = msUntil - Date.now();
+    if (left <= 0) {
+      el.textContent = 'Reserva expirada';
+      clearInterval(activeTimer);
+      onExpire();
+      return;
     }
+    const h = Math.floor(left / (1000*60*60));
+    const m = Math.floor((left % (1000*60*60)) / (1000*60));
+    const s = Math.floor((left % (1000*60)) / 1000);
+    el.textContent = `Reservado. Tiempo restante: ${h}h ${m}m ${s}s`;
+  }
+  tick();
+  activeTimer = setInterval(tick, 1000);
+}
 
-    async function obtenerReservas() {
-        const response = await fetch('/.netlify/functions/get-reservations');
-        if (!response.ok) { throw new Error('El servicio de reservas no respondió.'); }
-        
-        const submissions = await response.json();
-        const reservados = new Set();
-        submissions.forEach(sub => {
-            if (sub.data && sub.data.cartonId) {
-                reservados.add(parseInt(sub.data.cartonId, 10));
-            }
-        });
-        return reservados;
-    }
-    
-    // El resto del archivo se queda igual...
-    async function enviarReserva(idCarton){const formData=new FormData;formData.append("form-name","reservas-bingo");formData.append("cartonId",idCarton);formData.append("timestamp",Date.now().toString());await fetch("/",{method:"POST",body:new URLSearchParams(formData)})}function dibujarCartones(cartonesDelJuego,cartonesReservados){container.innerHTML="";cartonesDelJuego.forEach(carton=>{const id=carton.id;const estaEnMiCarrito=carritoLocal.includes(id);const cartonDiv=document.createElement("div");cartonDiv.classList.add("carton-individual","carton-venta");cartonDiv.dataset.id=id;if(estaEnMiCarrito){cartonDiv.classList.add("reservado")}let tablaHTML=`<h4>Cartón #${id}</h4>`;if(estaEnMiCarrito){tablaHTML+=`<div class="estado-label">EN TU CARRITO</div>`}let tabla="<table><thead><tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr></thead><tbody>";for(let fila=0;fila<5;fila++){tabla+="<tr>";for(let col=0;col<5;col++){tabla+=`<td>${carton.matriz[fila][col]==="FREE"?"★":carton.matriz[fila][col]}</td>`}tabla+="</tr>"}tabla+="</tbody></table>";tablaHTML+=tabla;cartonDiv.innerHTML=tablaHTML;container.appendChild(cartonDiv)});actualizarCarrito()}function actualizarCarrito(){localStorage.setItem("bingoCarritoLocal",JSON.stringify(carritoLocal));listaCarrito.innerHTML="";if(carritoLocal.length===0){listaCarrito.innerHTML="<li>No has seleccionado ningún cartón.</li>"}else{carritoLocal.sort((a,b)=>a-b).forEach(id=>{const li=document.createElement("li");li.textContent=`Cartón #${id}`;const botonQuitar=document.createElement("button");botonQuitar.textContent="Quitar";botonQuitar.classList.add("quitar-del-carrito");botonQuitar.dataset.id=id;li.appendChild(botonQuitar);listaCarrito.appendChild(li)})}totalPagarDisplay.textContent=`${(carritoLocal.length*PRECIO_POR_CARTON).toFixed(2)}`;cartonesSeleccionadosInput.value=carritoLocal.join(", ")}container.addEventListener("click",async event=>{const cartonDiv=event.target.closest(".carton-venta");if(!cartonDiv||cartonDiv.classList.contains("reservado"))return;const cartonId=parseInt(cartonDiv.dataset.id);try{await enviarReserva(cartonId);carritoLocal.push(cartonId);cartonDiv.classList.add("reservado");const h4=cartonDiv.querySelector("h4");if(h4)h4.insertAdjacentHTML("afterend",'<div class="estado-label">EN TU CARRITO</div>');actualizarCarrito()}catch(error){console.error("Fallo al reservar el cartón:",error);alert("No se pudo reservar el cartón. Inténtalo de nuevo.")}});listaCarrito.addEventListener("click",event=>{if(!event.target.classList.contains("quitar-del-carrito"))return;const cartonId=parseInt(event.target.dataset.id);carritoLocal=carritoLocal.filter(id=>id!==cartonId);const cartonDiv=container.querySelector(`.carton-venta[data-id="${cartonId}"]`);if(cartonDiv){cartonDiv.classList.remove("reservado");const label=cartonDiv.querySelector(".estado-label");if(label)label.remove()}actualizarCarrito()});inicializarTienda();
-});
+async function reserve(id) {
+  const res = await fetch(API('reserve-card'), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id })
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    alert(data.error || 'No se pudo reservar');
+    await load();
+    return;
+  }
+  // Arranca countdown y muestra botón de comprar y liberar
+  startCountdown(data.reservedUntil, async () => {
+    await fetch(API('release-card'), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    await load();
+  });
+
+  const actions = document.getElementById('actions');
+  actions.innerHTML = '';
+  const buy = document.createElement('button');
+  buy.textContent = 'Confirmar compra';
+  buy.onclick = () => confirmPurchase(id);
+  const release = document.createElement('button');
+  release.textContent = 'Cancelar / Liberar';
+  release.onclick = () => releaseCard(id);
+  actions.appendChild(buy);
+  actions.appendChild(release);
+}
+
+async function releaseCard(id) {
+  await fetch(API('release-card'), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id })
+  });
+  document.getElementById('status').textContent = 'Reserva liberada';
+  if (activeTimer) clearInterval(activeTimer);
+  await load();
+}
+
+async function confirmPurchase(id) {
+  const res = await fetch(API('confirm-purchase'), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id })
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    alert(data.error || 'No se pudo comprar');
+    return;
+  }
+  if (activeTimer) clearInterval(activeTimer);
+  document.getElementById('status').textContent = '¡Compra confirmada!';
+  document.getElementById('actions').innerHTML = '';
+  await load();
+}
+
+async function load() {
+  const container = document.getElementById('cards');
+  const cards = await fetchAvailable();
+  renderCards(container, cards);
+}
+
+document.addEventListener('DOMContentLoaded', load);
+</script>

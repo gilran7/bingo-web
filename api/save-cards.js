@@ -1,60 +1,68 @@
 import { getStore } from "@netlify/blobs";
+import { jsonResponse, handleOptions } from "./_utils.js";
 
-export const handler = async (event) => {
-  if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: "Method Not Allowed" }),
-    };
+/**
+ * Espera un body JSON:
+ * {
+ *   "cards": [
+ *     { "id": "A1", "numbers": [... 24 ó 25 ...] },
+ *     ...
+ *   ]
+ * }
+ * Cada cartón se guarda como key: "card:<id>"
+ * Estado inicial: "disponible"
+ */
+export default async (req) => {
+  const preflight = handleOptions(req);
+  if (preflight) return preflight;
+
+  if (req.method !== "POST") {
+    return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
   try {
-    const cards = JSON.parse(event.body);
+    const { cards } = await req.json();
     if (!Array.isArray(cards) || cards.length === 0) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "No cards provided or invalid format." }),
-      };
+      return jsonResponse({ error: "No se recibieron cartones válidos." }, 400);
     }
 
-    // ======================================================
-    // INICIO DE LA CORRECCIÓN FINAL
-    // Forzamos la conexión a Blobs con las credenciales del entorno
-    // ======================================================
-    const store = getStore({
-        name: "bingo-cards", // El nombre de nuestro almacén
-        siteID: process.env.NETLIFY_SITE_ID,
-        token: process.env.NETLIFY_API_TOKEN,
-    });
-    // ======================================================
-    // FIN DE LA CORRECCIÓN FINAL
-    // ======================================================
+    // IMPORTANTE: getStore dentro del handler
+    const store = getStore("bingo-cards");
 
-    // Borramos todos los cartones anteriores para empezar una nueva partida limpia
-    const { blobs } = await store.list();
-    for (const blob of blobs) {
-      await store.delete(blob.key);
-    }
+    const results = [];
+    for (const raw of cards) {
+      const id = String(raw.id || "").trim();
+      if (!id) {
+        results.push({ id: null, ok: false, error: "Falta id" });
+        continue;
+      }
+      const key = `card:${id}`;
 
-    for (const card of cards) {
-      const cardId = `card-${card.id}`;
-      const cardData = {
-        id: card.id,
-        numbers: card.numbers,
+      // onlyIfNew evita sobreescribir accidentalmente
+      const initial = {
+        id,
+        numbers: raw.numbers || [],
         status: "disponible",
+        reservedUntil: null,
+        reservedBy: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
       };
-      await store.setJSON(cardId, cardData);
+
+      const { modified } = await store.setJSON(key, initial, { onlyIfNew: true });
+      if (modified) {
+        results.push({ id, ok: true, created: true });
+      } else {
+        // Ya existía: no lo sobreescribimos
+        results.push({ id, ok: true, created: false });
+      }
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ message: `Successfully stored ${cards.length} new cards.` }),
-    };
-  } catch (error) {
-    console.error("Error saving cards:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Failed to save cards.", details: error.message }),
-    };
+    return jsonResponse({ ok: true, results });
+  } catch (err) {
+    return jsonResponse({
+      error: "Failed to save cards.",
+      details: String(err?.message || err)
+    }, 500);
   }
 };
