@@ -231,7 +231,16 @@ function reconstruirCartonDesdeDatos(idCarton, matriz, isActive = true) {
 function construirElementoCarton(idCarton, matriz, isActive) {
     const esVendido = reservas.has(idCarton);
     const cartonDiv = document.createElement('div');
+    
+    // ======================================================
+    // INICIO DE LA CORRECCIÓN
+    // ======================================================
     cartonDiv.classList.add('carton-individual');
+    cartonDiv.classList.add('card'); // <-- ¡AÑADIMOS ESTA LÍNEA CRUCIAL!
+    // ======================================================
+    // FIN DE LA CORRECCIÓN
+    // ======================================================
+
     if (!isActive) cartonDiv.classList.add('carton-inactivo');
     if (esVendido) cartonDiv.classList.add('carton-vendido');
     cartonDiv.id = `carton-${idCarton}`;
