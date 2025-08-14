@@ -1,5 +1,16 @@
-[build]
-  publish = "Bingo Web"
-
+# ======================================================
+# INICIO DE LA CORRECCIÓN
+# ======================================================
 [functions]
-  directory = "Bingo Web/netlify/functions"
+  # CORRECCIÓN: La ruta correcta es simplemente "netlify/", porque
+  # esa es la carpeta en la raíz que contiene todas nuestras funciones.
+  directory = "netlify/" 
+  node_bundler = "esbuild"
+# ======================================================
+# FIN DE LA CORRECCIÓN
+# ======================================================
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
