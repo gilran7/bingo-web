@@ -95,24 +95,15 @@
 
     <script src="script.js"></script>
     
-    <!-- ====================================================== -->
-    <!-- INICIO DEL BLOQUE DE SCRIPT CORREGIDO -->
-    <!-- ====================================================== -->
     <script>
-        // Este código se asegura de que el HTML esté completamente cargado antes de intentar encontrar los botones
         document.addEventListener('DOMContentLoaded', () => {
-
-            // Aquí dentro podría ir tu otro código del script.js si quisieras tener todo en un solo lugar
-            // pero lo dejamos separado por ahora para mantener la organización.
 
             const saveButton = document.getElementById('guardar-cartones-almacen');
 
-            // Comprobamos si el botón existe antes de añadirle el evento
             if (saveButton) {
                 saveButton.addEventListener('click', async () => {
                     console.log("Botón de guardar presionado. Recolectando datos...");
                     const cardsData = [];
-                    // Asegúrate de que cada DIV de cartón generado por tu script tenga la clase "card"
                     const cardElements = document.querySelectorAll('.card'); 
 
                     cardElements.forEach((cardElement, index) => {
@@ -120,8 +111,7 @@
                                            .map(td => parseInt(td.innerText, 10))
                                            .filter(num => !isNaN(num));
                         
-                        // Le asignamos un ID secuencial a cada cartón para identificarlo
-                        if(numbers.length > 0) { // Solo añadir si el cartón tiene números
+                        if(numbers.length > 0) {
                             cardsData.push({ id: index + 1, numbers: numbers });
                         }
                     });
@@ -133,12 +123,17 @@
                         return;
                     }
 
-                    // Mostrar mensaje de espera
                     alert('Guardando todos los cartones en el servidor... Por favor, espera un momento.');
 
                     try {
-                        // Usamos la URL limpia que configuramos en netlify.toml
-                        const response = await fetch('/api/save-cards', {
+                        // ======================================================
+                        // INICIO DE LA CORRECCIÓN DE PRUEBA
+                        // Llamamos a la función por su ruta completa y real.
+                        // ======================================================
+                        const response = await fetch('/.netlify/functions/save-cards', {
+                        // ======================================================
+                        // FIN DE LA CORRECCIÓN DE PRUEBA
+                        // ======================================================
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -146,12 +141,17 @@
                             body: JSON.stringify(cardsData),
                         });
 
+                        // Si la respuesta no es JSON, la leemos como texto para ver qué es
+                        if (!response.headers.get("content-type")?.includes("application/json")) {
+                            const textError = await response.text();
+                            throw new Error(`El servidor no respondió con JSON. Respuesta: ${textError}`);
+                        }
+
                         const result = await response.json();
 
                         if (response.ok) {
                             alert('¡ÉXITO! Los cartones se han guardado correctamente en el almacén.');
                         } else {
-                            // Si el servidor devuelve un error, lo mostramos
                             throw new Error(result.error || 'Ocurrió un error desconocido en el servidor.');
                         }
                     } catch (error) {
@@ -164,9 +164,6 @@
             }
         });
     </script>
-    <!-- ====================================================== -->
-    <!-- FIN DEL BLOQUE DE SCRIPT CORREGIDO -->
-    <!-- ====================================================== -->
 
 </body>
 </html>
