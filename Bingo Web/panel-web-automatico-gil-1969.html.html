@@ -21,6 +21,12 @@
             <button id="boton-anadir-carton">Añadir Cartón</button>
             <button id="boton-verificar-duplicados">Verificar Duplicados</button>
             <button id="boton-borrar-cartones">Borrar Todos los Cartones</button>
+            <!-- ====================================================== -->
+            <!-- BOTÓN PARA GUARDAR EN LA BASE DE DATOS -->
+            <button id="guardar-cartones-almacen" style="background-color: #28a745; color: white; width: 100%; padding: 10px; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px;">
+                Guardar Cartones en Almacén
+            </button>
+            <!-- ====================================================== -->
         </div>
 
         <!-- Columna 2: Panel de Control y Cartones -->
@@ -88,5 +94,79 @@
     </div>
 
     <script src="script.js"></script>
+    
+    <!-- ====================================================== -->
+    <!-- INICIO DEL BLOQUE DE SCRIPT CORREGIDO -->
+    <!-- ====================================================== -->
+    <script>
+        // Este código se asegura de que el HTML esté completamente cargado antes de intentar encontrar los botones
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Aquí dentro podría ir tu otro código del script.js si quisieras tener todo en un solo lugar
+            // pero lo dejamos separado por ahora para mantener la organización.
+
+            const saveButton = document.getElementById('guardar-cartones-almacen');
+
+            // Comprobamos si el botón existe antes de añadirle el evento
+            if (saveButton) {
+                saveButton.addEventListener('click', async () => {
+                    console.log("Botón de guardar presionado. Recolectando datos...");
+                    const cardsData = [];
+                    // Asegúrate de que cada DIV de cartón generado por tu script tenga la clase "card"
+                    const cardElements = document.querySelectorAll('.card'); 
+
+                    cardElements.forEach((cardElement, index) => {
+                        const numbers = Array.from(cardElement.querySelectorAll('td'))
+                                           .map(td => parseInt(td.innerText, 10))
+                                           .filter(num => !isNaN(num));
+                        
+                        // Le asignamos un ID secuencial a cada cartón para identificarlo
+                        if(numbers.length > 0) { // Solo añadir si el cartón tiene números
+                            cardsData.push({ id: index + 1, numbers: numbers });
+                        }
+                    });
+                    
+                    console.log(`Se recolectaron ${cardsData.length} cartones válidos.`);
+
+                    if (cardsData.length === 0) {
+                        alert('No se encontraron cartones válidos en la página para guardar.');
+                        return;
+                    }
+
+                    // Mostrar mensaje de espera
+                    alert('Guardando todos los cartones en el servidor... Por favor, espera un momento.');
+
+                    try {
+                        // Usamos la URL limpia que configuramos en netlify.toml
+                        const response = await fetch('/api/save-cards', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(cardsData),
+                        });
+
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            alert('¡ÉXITO! Los cartones se han guardado correctamente en el almacén.');
+                        } else {
+                            // Si el servidor devuelve un error, lo mostramos
+                            throw new Error(result.error || 'Ocurrió un error desconocido en el servidor.');
+                        }
+                    } catch (error) {
+                        console.error('Error al guardar los cartones:', error);
+                        alert(`Hubo un error al guardar los cartones. Por favor, intenta de nuevo.\nDetalles: ${error.message}`);
+                    }
+                });
+            } else {
+                console.error("No se encontró el botón con id 'guardar-cartones-almacen'");
+            }
+        });
+    </script>
+    <!-- ====================================================== -->
+    <!-- FIN DEL BLOQUE DE SCRIPT CORREGIDO -->
+    <!-- ====================================================== -->
+
 </body>
 </html>
