@@ -17,7 +17,18 @@ export const handler = async (event) => {
       };
     }
 
-    const store = getStore("bingo-cards");
+    // ======================================================
+    // INICIO DE LA CORRECCIÓN FINAL
+    // Forzamos la conexión a Blobs con las credenciales del entorno
+    // ======================================================
+    const store = getStore({
+        name: "bingo-cards", // El nombre de nuestro almacén
+        siteID: process.env.NETLIFY_SITE_ID,
+        token: process.env.NETLIFY_API_TOKEN,
+    });
+    // ======================================================
+    // FIN DE LA CORRECCIÓN FINAL
+    // ======================================================
 
     // Borramos todos los cartones anteriores para empezar una nueva partida limpia
     const { blobs } = await store.list();
