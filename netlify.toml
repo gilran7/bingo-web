@@ -1,13 +1,13 @@
-[build]
-  command = "npm ci"
-  publish = "Bingo Web"
-  functions = "netlify/functions"
-
 [functions]
-  node_bundler = "esbuild"
-  node_version = "20"
+node_bundler = "esbuild"
+external_node_modules = ["@netlify/functions", "@netlify/blobs"]
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+[build]
+functions = "netlify/functions"
+publish = "."
+
+[dev]
+functions = "netlify/functions"
+
+[functions.environment]
+NODE_VERSION = "20"

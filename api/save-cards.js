@@ -1,52 +1,36 @@
-// netlify/functions/save-cards.js
 import { jsonResponse } from "./_utils.js";
-import { getStore } from "@netlify/blobs";
-import { randomUUID } from "node:crypto";
+import { createClient } from "@netlify/blobs";
 
-export async function handler(event) {
-  if (event.httpMethod !== "POST") {
-    return jsonResponse({ error: "Método no permitido" }, 405);
-  }
-
+export default async function handler(event) {
   try {
-    const payload = JSON.parse(event.body || "null");
-    const cards = Array.isArray(payload) ? payload : payload?.cards;
-
-    if (!Array.isArray(cards) || cards.length === 0) {
-      return jsonResponse({ error: "No se enviaron cartones válidos." }, 400);
+    if (event.httpMethod !== "POST") {
+      return jsonResponse({ error: "Método no permitido" }, 405);
     }
 
-    const store = getStore("bingo-cards");
+    const { cards } = JSON.parse(event.body);
 
-    const results = [];
-    for (const raw of cards) {
-      const id = String(raw?.id || randomUUID());
-      const key = `card:${id}`;
-      const card = {
-        id,
-        numbers: Array.isArray(raw?.numbers) ? raw.numbers : [],
-        status: "disponible",
-        reservedUntil: null,
-        reservedBy: null,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
-
-      // Crea solo si no existe (evita sobreescrituras accidentales)
-      try {
-        await store.setJSON(key, card, { ifNoneMatch: "*" });
-        results.push({ id, created: true });
-      } catch (e) {
-        // Si ya existe, lo reportamos sin detener todo el lote
-        results.push({ id, created: false, note: "Ya existía" });
-      }
+    if (!cards || !Array.isArray(cards)) {
+      return jsonResponse({ error: "Formato inválido" }, 400);
     }
 
-    return jsonResponse({ ok: true, results });
-  } catch (err) {
-    console.error("save-cards error:", err);
+    // Conectar a Netlify Blobs
+    const client = createClient({
+      siteID: process.env.NETLIFY_SITE_ID,
+      token: process.env.NETLIFY_API_TOKEN,
+    });
+
+    const store = client.store("bingo-cards");
+
+    await store.setJSON("cards.json", cards);
+
+    return jsonResponse({ message: "Cartones guardados correctamente" });
+  } catch (error) {
+    console.error(error);
     return jsonResponse(
-      { error: "Error al guardar cartones", details: err.message },
+      {
+        error: "Failed to save cards.",
+        details: error.message
+      },
       500
     );
   }

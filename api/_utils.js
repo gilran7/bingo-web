@@ -1,10 +1,8 @@
-// netlify/functions/_utils.js
 export function jsonResponse(data, status = 200) {
   return {
     statusCode: status,
     headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store"
+      "Content-Type": "application/json"
     },
     body: JSON.stringify(data)
   };
