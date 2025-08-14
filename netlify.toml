@@ -1,5 +1,11 @@
 [build]
+  # COMANDO EXPLÍCITO PARA INSTALAR LAS DEPENDENCIAS DEL package.json
+  command = "npm install"
+  
+  # Directorio público
   publish = "Bingo Web"
+  
+  # Directorio de funciones
   functions = "api"
 
 [[redirects]]
