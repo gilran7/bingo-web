@@ -1,20 +1,8 @@
-# ======================================================
-# CONFIGURACIÓN DE CONSTRUCCIÓN Y DESPLIEGUE
-# ======================================================
 [build]
-  # El directorio que contiene tu sitio público (index.html, etc.)
-  publish = "Bingo Web/"
-  
-  # El directorio que contiene tus funciones de Netlify
-  functions = "netlify/"
+  command = "echo 'Build command goes here'"
+  publish = "Bingo Web"
+  functions = "netlify"
 
-# Configuración específica de las funciones
-[functions]
-  node_bundler = "esbuild"
-
-# ======================================================
-# REGLA DE REDIRECCIÓN PARA LA API
-# ======================================================
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
