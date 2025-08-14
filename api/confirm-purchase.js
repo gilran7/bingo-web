@@ -1,59 +1,55 @@
+// netlify/functions/confirm-purchase.js
+import { jsonResponse } from "./_utils.js";
 import { getStore } from "@netlify/blobs";
-import { jsonResponse, handleOptions, nowMs } from "./_utils.js";
 
-/**
- * Body:
- * { "id": "A1" }
- * - Si está "reservado" y no expiró -> "vendido".
- * - Si está "disponible" -> "vendido" (si permites compra directa).
- * - Si ya está "vendido" -> 409.
- */
-export default async (req) => {
-  const preflight = handleOptions(req);
-  if (preflight) return preflight;
-
-  if (req.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed" }, 405);
+export async function handler(event) {
+  if (event.httpMethod !== "POST") {
+    return jsonResponse({ error: "Método no permitido" }, 405);
   }
 
   try {
-    const { id } = await req.json();
-    if (!id) return jsonResponse({ error: "Falta id" }, 400);
+    const { id } = JSON.parse(event.body || "{}");
+    if (!id) return jsonResponse({ error: "Falta el id del cartón" }, 400);
 
-    const key = `card:${id}`;
     const store = getStore("bingo-cards");
+    const key = `card:${id}`;
 
     const current = await store.getWithMetadata(key, { type: "json" });
-    if (!current?.data) return jsonResponse({ error: "Cartón no existe" }, 404);
+    if (!current?.data) {
+      return jsonResponse({ error: "Cartón no existe" }, 404);
+    }
 
-    const now = nowMs();
+    const now = Date.now();
+    const c = current.data;
 
-    if (current.data.status === "vendido") {
+    if (c.status === "vendido") {
       return jsonResponse({ error: "Cartón ya vendido" }, 409);
     }
 
-    if (current.data.status === "reservado") {
-      if (current.data.reservedUntil && current.data.reservedUntil < now) {
-        return jsonResponse({ error: "Reserva expirada" }, 409);
-      }
+    if (c.status !== "reservado" || typeof c.reservedUntil !== "number" || c.reservedUntil <= now) {
+      return jsonResponse({ error: "Reserva expirada o inexistente" }, 409);
     }
 
     const updated = {
-      ...current.data,
+      ...c,
       status: "vendido",
       reservedUntil: null,
-      reservedBy: null,
-      updatedAt: now,
-      soldAt: now
+      soldAt: now,
+      updatedAt: now
     };
 
-    const { modified } = await store.setJSON(key, updated, { onlyIfMatch: current.etag });
-    if (!modified) {
-      return jsonResponse({ error: "Conflicto de concurrencia. Intenta de nuevo." }, 409);
+    try {
+      await store.setJSON(key, updated, { ifMatch: current.etag });
+    } catch {
+      return jsonResponse({ error: "Conflicto de concurrencia" }, 409);
     }
 
     return jsonResponse({ ok: true, id });
   } catch (err) {
-    return jsonResponse({ error: "Failed to confirm purchase", details: String(err?.message || err) }, 500);
+    console.error("confirm-purchase error:", err);
+    return jsonResponse(
+      { error: "Error al confirmar compra", details: err.message },
+      500
+    );
   }
-};
+}

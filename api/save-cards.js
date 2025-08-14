@@ -1,47 +1,30 @@
+// netlify/functions/save-cards.js
+import { jsonResponse } from "./_utils.js";
 import { getStore } from "@netlify/blobs";
-import { jsonResponse, handleOptions } from "./_utils.js";
+import { randomUUID } from "node:crypto";
 
-/**
- * Espera un body JSON:
- * {
- *   "cards": [
- *     { "id": "A1", "numbers": [... 24 ó 25 ...] },
- *     ...
- *   ]
- * }
- * Cada cartón se guarda como key: "card:<id>"
- * Estado inicial: "disponible"
- */
-export default async (req) => {
-  const preflight = handleOptions(req);
-  if (preflight) return preflight;
-
-  if (req.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed" }, 405);
+export async function handler(event) {
+  if (event.httpMethod !== "POST") {
+    return jsonResponse({ error: "Método no permitido" }, 405);
   }
 
   try {
-    const { cards } = await req.json();
+    const payload = JSON.parse(event.body || "null");
+    const cards = Array.isArray(payload) ? payload : payload?.cards;
+
     if (!Array.isArray(cards) || cards.length === 0) {
-      return jsonResponse({ error: "No se recibieron cartones válidos." }, 400);
+      return jsonResponse({ error: "No se enviaron cartones válidos." }, 400);
     }
 
-    // IMPORTANTE: getStore dentro del handler
     const store = getStore("bingo-cards");
 
     const results = [];
     for (const raw of cards) {
-      const id = String(raw.id || "").trim();
-      if (!id) {
-        results.push({ id: null, ok: false, error: "Falta id" });
-        continue;
-      }
+      const id = String(raw?.id || randomUUID());
       const key = `card:${id}`;
-
-      // onlyIfNew evita sobreescribir accidentalmente
-      const initial = {
+      const card = {
         id,
-        numbers: raw.numbers || [],
+        numbers: Array.isArray(raw?.numbers) ? raw.numbers : [],
         status: "disponible",
         reservedUntil: null,
         reservedBy: null,
@@ -49,20 +32,22 @@ export default async (req) => {
         updatedAt: Date.now()
       };
 
-      const { modified } = await store.setJSON(key, initial, { onlyIfNew: true });
-      if (modified) {
-        results.push({ id, ok: true, created: true });
-      } else {
-        // Ya existía: no lo sobreescribimos
-        results.push({ id, ok: true, created: false });
+      // Crea solo si no existe (evita sobreescrituras accidentales)
+      try {
+        await store.setJSON(key, card, { ifNoneMatch: "*" });
+        results.push({ id, created: true });
+      } catch (e) {
+        // Si ya existe, lo reportamos sin detener todo el lote
+        results.push({ id, created: false, note: "Ya existía" });
       }
     }
 
     return jsonResponse({ ok: true, results });
   } catch (err) {
-    return jsonResponse({
-      error: "Failed to save cards.",
-      details: String(err?.message || err)
-    }, 500);
+    console.error("save-cards error:", err);
+    return jsonResponse(
+      { error: "Error al guardar cartones", details: err.message },
+      500
+    );
   }
-};
+}

@@ -1,52 +1,55 @@
+// netlify/functions/release-card.js
+import { jsonResponse } from "./_utils.js";
 import { getStore } from "@netlify/blobs";
-import { jsonResponse, handleOptions, nowMs } from "./_utils.js";
 
-/**
- * Body:
- * { "id": "A1" }
- * - Si está "reservado" y expiró o queremos liberarlo manualmente, lo pasa a "disponible".
- * - Usa CAS para no pisar cambios recientes.
- */
-export default async (req) => {
-  const preflight = handleOptions(req);
-  if (preflight) return preflight;
-
-  if (req.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed" }, 405);
+export async function handler(event) {
+  if (event.httpMethod !== "POST") {
+    return jsonResponse({ error: "Método no permitido" }, 405);
   }
 
   try {
-    const { id } = await req.json();
-    if (!id) return jsonResponse({ error: "Falta id" }, 400);
+    const { id } = JSON.parse(event.body || "{}");
+    if (!id) return jsonResponse({ error: "Falta el id del cartón" }, 400);
 
-    const key = `card:${id}`;
     const store = getStore("bingo-cards");
+    const key = `card:${id}`;
 
     const current = await store.getWithMetadata(key, { type: "json" });
-    if (!current?.data) return jsonResponse({ error: "Cartón no existe" }, 404);
-
-    const now = nowMs();
-
-    if (current.data.status === "vendido") {
-      return jsonResponse({ error: "Cartón ya vendido" }, 409);
+    if (!current?.data) {
+      return jsonResponse({ error: "Cartón no existe" }, 404);
     }
 
-    // Si estaba reservado pero no expiró y queremos liberar de todas formas, también se permite
+    const now = Date.now();
+    const c = current.data;
+
+    // Si ya está disponible o vendido, no hacemos nada destructivo
+    if (c.status === "vendido") {
+      return jsonResponse({ ok: true, id, message: "Cartón ya vendido (no se libera)" });
+    }
+    if (c.status === "disponible") {
+      return jsonResponse({ ok: true, id, message: "Cartón ya estaba disponible" });
+    }
+
+    // Estaba reservado: lo liberamos si venció o si el usuario cancela
     const updated = {
-      ...current.data,
+      ...c,
       status: "disponible",
       reservedUntil: null,
-      reservedBy: null,
       updatedAt: now
     };
 
-    const { modified } = await store.setJSON(key, updated, { onlyIfMatch: current.etag });
-    if (!modified) {
-      return jsonResponse({ error: "Conflicto de concurrencia. Intenta de nuevo." }, 409);
+    try {
+      await store.setJSON(key, updated, { ifMatch: current.etag });
+    } catch {
+      return jsonResponse({ error: "Conflicto de concurrencia" }, 409);
     }
 
     return jsonResponse({ ok: true, id });
   } catch (err) {
-    return jsonResponse({ error: "Failed to release card", details: String(err?.message || err) }, 500);
+    console.error("release-card error:", err);
+    return jsonResponse(
+      { error: "Error al liberar cartón", details: err.message },
+      500
+    );
   }
-};
+}

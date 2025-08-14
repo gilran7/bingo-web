@@ -1,80 +1,138 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprar Cartones de Bingo</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="comprar.css">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Comprar Cartones</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; padding: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+    .card-item { border: 1px solid #ddd; border-radius: 10px; padding: 12px; }
+    .actions { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+    button { cursor: pointer; padding: 8px 12px; border-radius: 8px; border: 1px solid #ccc; }
+    #status { margin-top: 10px; font-weight: bold; }
+  </style>
 </head>
 <body>
+  <h1>Comprar Cartones</h1>
 
-    <!-- Formulario oculto que actuará como nuestra base de datos de reservas -->
-<form name="reservas-bingo" hidden netlify netlify-honeypot="bot-field">
-  <input type="text" name="cartonId" />
-  <input type="text" name="timestamp" />
-</form>
-    
-    <div class="store-container">
-        <h1>¡Compra tus Cartones para el Gran Bingo!</h1>
-        <p class="instructions">
-            Selecciona los cartones que deseas comprar. Cuando estés listo, completa el formulario al final de la página.
-        </p>
+  <div id="cartones" class="grid"></div>
 
-        <div id="cartones-disponibles-container"></div>
+  <div class="actions" id="acciones" style="display:none;">
+    <button id="btnComprar">Confirmar compra</button>
+    <button id="btnCancelar">Cancelar</button>
+  </div>
 
-        <hr>
+  <div id="status"></div>
 
-        <div class="checkout-form-container">
-            <h2>Completa tu Compra</h2>
-            
-            <!-- CÓDIGO FINAL CORRECTO -->
-            <form 
-              name="compra-cartones" 
-              method="POST" 
-              action="/gracias.html" 
-              data-netlify="true" 
-              netlify-honeypot="bot-field" 
-              enctype="multipart/form-data">
+  <script>
+    const API = (fn) => `/.netlify/functions/${fn}`;
+    let currentId = null;
+    let timer = null;
 
-                <input type="hidden" name="form-name" value="compra-cartones">
-                <p class="hidden" style="display:none;">
-                    <label>No llenar: <input name="bot-field"></label>
-                </p>
+    function fmt(ms){
+      const s = Math.max(0, Math.floor(ms/1000));
+      const h = Math.floor(s/3600);
+      const m = Math.floor((s%3600)/60);
+      const ss = s%60;
+      return `${h}h ${m}m ${ss}s`;
+    }
 
-                <div class="form-group">
-                    <label for="nombre">Nombre Completo:</label>
-                    <input type="text" id="nombre" name="nombre" required>
-                </div>
-                <div class="form-group">
-                    <label for="telefono">Número de Teléfono (WhatsApp):</label>
-                    <input type="tel" id="telefono" name="telefono" required>
-                </div>
-                <div class="form-group">
-                    <label for="comprobante">Últimos 4 dígitos del Comprobante:</label>
-                    <input type="text" id="comprobante" name="ultimos_4_digitos" pattern="\d{4}" title="Debe contener exactamente 4 números." required>
-                </div>
-                <div class="form-group">
-                    <label for="capture">Sube la Captura del Pago:</label>
-                    <input type="file" id="capture" name="comprobante_adjunto" accept="image/*" required>
-                </div>
+    function startCountdown(until) {
+      clearInterval(timer);
+      const status = document.getElementById('status');
+      const end = Number(until) || 0;
+      const tick = () => {
+        const rem = end - Date.now();
+        if (rem <= 0) {
+          clearInterval(timer);
+          status.textContent = "Reserva expirada. Liberando...";
+          if (currentId) release(currentId);
+          return;
+        }
+        status.textContent = `Reservado. Tiempo restante: ${fmt(rem)}`;
+      };
+      tick();
+      timer = setInterval(tick, 1000);
+    }
 
-                <div id="carrito-container">
-                    <h3>Cartones Seleccionados:</h3>
-                    <ul id="lista-carrito">
-                        <li>No has seleccionado ningún cartón.</li>
-                    </ul>
-                    <p>Total a Pagar: <span id="total-pagar">0.00</span></p>
-                </div>
+    async function load() {
+      const cont = document.getElementById('cartones');
+      cont.innerHTML = "Cargando...";
+      const res = await fetch(API("get-available-cards"));
+      const data = await res.json();
+      cont.innerHTML = "";
 
-                <input type="hidden" name="cartones_seleccionados" id="cartones-seleccionados-input">
-                
-                <button type="submit" class="submit-button">Confirmar y Enviar Compra</button>
-            </form>
-        </div>
-    </div>
+      if (!data.ok) {
+        cont.textContent = data.error || "Error al cargar cartones";
+        return;
+      }
 
-    <script src="comprar.js"></script>
+      for (const c of data.cards) {
+        const div = document.createElement('div');
+        div.className = 'card-item';
+        div.innerHTML = `
+          <strong>Cartón ${c.id}</strong><br/>
+          <small>${(c.numbers || []).join(", ")}</small><br/>
+          <button data-id="${c.id}">Reservar</button>
+        `;
+        div.querySelector('button').onclick = () => reserve(c.id);
+        cont.appendChild(div);
+      }
+    }
 
+    async function reserve(id) {
+      const resp = await fetch(API("reserve-card"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+      });
+      const data = await resp.json();
+      if (!data.ok) {
+        alert(data.error || "No se pudo reservar");
+        await load();
+        return;
+      }
+      currentId = id;
+      document.getElementById('acciones').style.display = 'flex';
+      document.getElementById('btnComprar').onclick = () => confirmPurchase(id);
+      document.getElementById('btnCancelar').onclick = () => release(id);
+      startCountdown(data.reservedUntil);
+    }
+
+    async function release(id) {
+      await fetch(API("release-card"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+      });
+      clearInterval(timer);
+      document.getElementById('acciones').style.display = 'none';
+      currentId = null;
+      document.getElementById('status').textContent = "Reserva liberada.";
+      await load();
+    }
+
+    async function confirmPurchase(id) {
+      const resp = await fetch(API("confirm-purchase"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+      });
+      const data = await resp.json();
+      if (!data.ok) {
+        alert(data.error || "No se pudo confirmar la compra");
+        await load();
+        return;
+      }
+      clearInterval(timer);
+      document.getElementById('acciones').style.display = 'none';
+      currentId = null;
+      document.getElementById('status').textContent = "Compra confirmada. ¡Gracias!";
+      await load();
+    }
+
+    load();
+  </script>
 </body>
 </html>

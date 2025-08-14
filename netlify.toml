@@ -1,13 +1,11 @@
 [build]
-  command = "npm install"
+  command = "npm ci"
   publish = "Bingo Web"
-  functions = "api"
+  functions = "netlify/functions"
 
 [functions]
-  # Usamos esbuild para ESM y mejor tree-shaking
   node_bundler = "esbuild"
-  # Forzamos Node 18+ en funciones (Blobs lo requiere)
-  node_version = "18"
+  node_version = "20"
 
 [[redirects]]
   from = "/*"
