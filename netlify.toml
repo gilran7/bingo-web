@@ -1,0 +1,5 @@
+[build]
+  publish = "Bingo Web"
+
+[functions]
+  directory = "Bingo Web/netlify/functions"

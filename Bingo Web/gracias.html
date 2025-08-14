@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Gracias por tu Compra!</title>
+    <link rel="stylesheet" href="style.css"> 
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 500px;
+            padding: 2rem 3rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #28a745;
+        }
+        a {
+            display: inline-block;
+            margin-top: 1.5rem;
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        a:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>¡Compra Recibida!</h1>
+        <p>¡Muchas gracias por participar! Hemos recibido tu pedido de cartones de bingo correctamente.</p>
+        <p>En breve, revisaremos tu comprobante de pago y te contactaremos por WhatsApp para confirmar todo.</p>
+        <p><strong>¡Mucha suerte en el juego!</strong></p>
+        <a href="/">Volver a la página principal</a>
+    </div>
+
+    <!-- ¡NUEVO SCRIPT! Esto limpia el carrito después de una compra exitosa. -->
+    <script>
+        // Al llegar a la página de gracias, borramos el carrito guardado.
+        localStorage.removeItem('bingoCarritoLocal');
+    </script>
+</body>
+</html>

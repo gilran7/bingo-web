@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Prueba de Reserva</title>
+</head>
+<body>
+    <h1>Enviando reserva de prueba...</h1>
+    <form name="reservas-bingo" netlify netlify-honeypot="bot-field" method="POST" action="/gracias.html">
+        <input type="hidden" name="cartonId" value="0">
+        <input type="hidden" name="timestamp" value="0">
+        <button type="submit">Enviar Prueba</button>
+    </form>
+    <script>
+        // Envía el formulario automáticamente al cargar la página
+        document.querySelector('form').submit();
+    </script>
+</body>
+</html>

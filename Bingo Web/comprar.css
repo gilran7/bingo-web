@@ -1,0 +1,173 @@
+/* --- Contenedores Principales --- */
+.store-container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+}
+
+.instructions {
+    text-align: center;
+    font-size: 1.1em;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+/* --- Zona de Cartones --- */
+#cartones-disponibles-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    padding: 20px 0;
+    min-height: 150px; /* Evita que la página "salte" mientras cargan los cartones */
+}
+
+.carton-venta {
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative; /* Clave para posicionar las etiquetas de estado */
+}
+
+/* MEJORA: Ya no se usa la clase .selected, se puede eliminar */
+/* .carton-venta.selected { ... } */
+
+/* MEJORA: Estilo para cartones reservados por OTROS o en el carrito del cliente */
+.carton-venta.reservado {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* --- Etiqueta de Estado (VENDIDO / EN CARRITO) --- */
+.estado-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+    text-align: center;
+    pointer-events: none; /* Evita que la etiqueta bloquee el clic */
+    z-index: 10;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Le da un poco de profundidad */
+    width: 90%; /* Asegura que el texto se ajuste bien */
+}
+
+/* MEJORA: Distinción de colores para la etiqueta */
+.reservado .estado-label {
+    background-color: rgba(220, 53, 69, 0.85); /* ROJO para "VENDIDO / RESERVADO" */
+}
+
+.reservado .estado-label:not(:empty):not(:contains("EN TU CARRITO")) + h4 {
+    opacity: 0.2; /* Opcional: atenúa el título si está vendido */
+}
+
+/* Estilo específico cuando es "EN TU CARRITO" */
+.estado-label:empty + h4 { display: block; } /* Asegura que se vea el título si no hay etiqueta */
+.estado-label:not(:empty) + h4 { opacity: 0.2; } /* Oculta un poco el título si hay etiqueta */
+.carton-venta.reservado:has(.estado-label:contains("EN TU CARRITO")) .estado-label {
+    background-color: rgba(40, 167, 69, 0.85); /* VERDE para "EN TU CARRITO" */
+}
+
+
+/* --- Formulario de Compra --- */
+.checkout-form-container {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    margin-top: 30px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+/* --- Carrito de Compras --- */
+#carrito-container {
+    margin-top: 20px;
+    padding: 15px;
+    background: #e3f2fd;
+    border-radius: 5px;
+}
+
+#lista-carrito {
+    list-style: none;
+    padding: 0;
+}
+
+#lista-carrito li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+}
+
+.quitar-del-carrito {
+    margin-left: 10px;
+    padding: 2px 8px;
+    font-size: 0.8em;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.2s; /* MEJORA: Transición suave */
+}
+
+/* MEJORA: Efecto hover para el botón de quitar */
+.quitar-del-carrito:hover {
+    background-color: #c82333;
+}
+
+
+/* --- Botón de Envío Principal --- */
+.submit-button {
+    background-color: #28a745; /* Verde ligeramente distinto */
+    color: white;
+    border: none;
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2em;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.submit-button:hover {
+    background-color: #218838;
+}
+
+/* MEJORA: Estilos para mensajes de feedback (Cargando, Errores) */
+.mensaje-error, .mensaje-feedback {
+    text-align: center;
+    font-size: 1.2em;
+    padding: 20px;
+    border-radius: 5px;
+    margin: 20px;
+}
+
+.mensaje-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}

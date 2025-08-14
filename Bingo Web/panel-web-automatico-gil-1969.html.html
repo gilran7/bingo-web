@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Bingo Automático</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>BINGO AUTOMÁTICO PROFESIONAL</h1>
+
+    <div class="juego-container">
+
+        <!-- Columna 1: Panel de Control Izquierdo (AHORA SOLO EL TABLERO) -->
+        <div class="panel-izquierdo">
+            <!-- CORRECCIÓN: Se han añadido los contenedores que el script necesita para dibujar la tabla -->
+            <div id="tabla-maestra">
+                <div id="contenedor-columnas-letras"></div>
+                <div id="contenedor-numeros-maestros"></div>
+            </div>
+            <button id="boton-anadir-carton">Añadir Cartón</button>
+            <button id="boton-verificar-duplicados">Verificar Duplicados</button>
+            <button id="boton-borrar-cartones">Borrar Todos los Cartones</button>
+        </div>
+
+        <!-- Columna 2: Panel de Control y Cartones -->
+        <div class="panel-derecho">
+            <div class="seccion-superior-fija">
+                <div class="controles-superiores">
+                    <div class="displays-superiores-container">
+                        <div id="visualizador-patron">
+                            <h4>PATRÓN EN JUEGO</h4>
+                            <img id="imagen-patron" src="imagenes/patron_lnormal.png" alt="Patrón de Bingo">
+                        </div>
+                        <div class="marcador-historial-container">
+                            <div class="marcador">
+                                <p>Último número cantado:</p>
+                                <div id="numero-cantado">--</div>
+                            </div>
+                            <div id="panel-historial">
+                                <h3>Últimos 5 Números</h3>
+                                <div id="lista-historial"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="control-modo">
+                        <button id="boton-modo">Cambiar a Modo Manual</button>
+                        <span id="display-modo">Modo: Automático</span>
+                    </div>
+                    <div class="controles-principales">
+                        <button id="boton-cantar">Cantar Número</button>
+                        <button id="boton-retroceder" disabled>Retroceder</button>
+                        <button id="boton-nueva-ronda">NUEVA RONDA</button>
+                        <button id="boton-mostrar-ganadores" disabled>Mostrar Ganadores</button>
+                    </div>
+                </div>
+                <hr>
+                <div class="controles-cartones">
+                     <select id="select-patron" name="patron" title="Seleccionar Patrón">
+                        <option value="lnormal">L Normal</option>
+                        <option value="linvertida">L Invertida</option>
+                        <option value="4esquinas">4 Esquinas</option>
+                        <option value="cruzpequeña">Cruz Pequeña</option>
+                        <option value="cruzgrande">Cruz Grande</option>
+                        <option value="x">Diagonal X</option>
+                        <option value="e">Forma E</option>
+                        <option value="t">Forma T</option>
+                        <option value="fila">Fila Completa</option>
+                        <option value="columna">Columna</option>
+                        <option value="bordecarton">Borde Cartón</option>
+                        <option value="cartonlleno">Cartón Lleno</option>
+                    </select>
+                </div>
+            </div>
+            <div id="zona-de-cartones"></div>
+        </div>
+    </div>
+
+    <!-- Modal (OJO: Se ha eliminado el botón "Siguiente Ganador" que ya no se usa) -->
+    <div id="modal-ganador-backdrop" class="hidden">
+        <div id="modal-ganador-content">
+            <button id="modal-close-button">&times;</button>
+            <div id="modal-carton-container"></div>
+            <!-- El botón "Siguiente Ganador" ha sido eliminado del modal,
+                 ya que la nueva lógica está en el botón principal "Mostrar Ganadores" -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

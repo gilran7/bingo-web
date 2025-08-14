@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprar Cartones de Bingo</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="comprar.css">
+</head>
+<body>
+
+    <!-- Formulario oculto que actuará como nuestra base de datos de reservas -->
+<form name="reservas-bingo" hidden netlify netlify-honeypot="bot-field">
+  <input type="text" name="cartonId" />
+  <input type="text" name="timestamp" />
+</form>
+    
+    <div class="store-container">
+        <h1>¡Compra tus Cartones para el Gran Bingo!</h1>
+        <p class="instructions">
+            Selecciona los cartones que deseas comprar. Cuando estés listo, completa el formulario al final de la página.
+        </p>
+
+        <div id="cartones-disponibles-container"></div>
+
+        <hr>
+
+        <div class="checkout-form-container">
+            <h2>Completa tu Compra</h2>
+            
+            <!-- CÓDIGO FINAL CORRECTO -->
+            <form 
+              name="compra-cartones" 
+              method="POST" 
+              action="/gracias.html" 
+              data-netlify="true" 
+              netlify-honeypot="bot-field" 
+              enctype="multipart/form-data">
+
+                <input type="hidden" name="form-name" value="compra-cartones">
+                <p class="hidden" style="display:none;">
+                    <label>No llenar: <input name="bot-field"></label>
+                </p>
+
+                <div class="form-group">
+                    <label for="nombre">Nombre Completo:</label>
+                    <input type="text" id="nombre" name="nombre" required>
+                </div>
+                <div class="form-group">
+                    <label for="telefono">Número de Teléfono (WhatsApp):</label>
+                    <input type="tel" id="telefono" name="telefono" required>
+                </div>
+                <div class="form-group">
+                    <label for="comprobante">Últimos 4 dígitos del Comprobante:</label>
+                    <input type="text" id="comprobante" name="ultimos_4_digitos" pattern="\d{4}" title="Debe contener exactamente 4 números." required>
+                </div>
+                <div class="form-group">
+                    <label for="capture">Sube la Captura del Pago:</label>
+                    <input type="file" id="capture" name="comprobante_adjunto" accept="image/*" required>
+                </div>
+
+                <div id="carrito-container">
+                    <h3>Cartones Seleccionados:</h3>
+                    <ul id="lista-carrito">
+                        <li>No has seleccionado ningún cartón.</li>
+                    </ul>
+                    <p>Total a Pagar: <span id="total-pagar">0.00</span></p>
+                </div>
+
+                <input type="hidden" name="cartones_seleccionados" id="cartones-seleccionados-input">
+                
+                <button type="submit" class="submit-button">Confirmar y Enviar Compra</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="comprar.js"></script>
+
+</body>
+</html>
