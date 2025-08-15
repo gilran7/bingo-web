@@ -47,12 +47,11 @@
         <a href="comprar.html" class="button">Comprar Cartones</a>
     </div>
 
-    <!-- FORMULARIO FANTASMA PARA LA BASE DE DATOS DE CARTONES (CORRECTO) -->
-    <form name="cartones-disponibles" netlify netlify-honeypot="bot-field" hidden>
-      <input type="text" name="id" />
-      <input type="text" name="numeros" />
-      <input type="text" name="status" />
-    </form>
+   <!-- FORMULARIO FANTASMA PARA GUARDADO MASIVO -->
+<form name="cartones-disponibles" netlify netlify-honeypot="bot-field" hidden>
+  <input type="text" name="batchId" />
+  <textarea name="cartonesData"></textarea>
+</form>
 
 </body>
 </html>
