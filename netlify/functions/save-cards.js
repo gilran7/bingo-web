@@ -1,9 +1,15 @@
 import { getStore } from "@netlify/blobs";
-import { jsonResponse } from "./_utils.js";
 
 export async function handler(event) {
   try {
-    const { cards } = JSON.parse(event.body);
+    const { cards } = JSON.parse(event.body || "{}");
+
+    if (!cards) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "No se recibieron cartones" })
+      };
+    }
 
     const store = getStore({
       name: "bingo-cards",
@@ -13,9 +19,16 @@ export async function handler(event) {
 
     await store.set("cards", JSON.stringify(cards));
 
-    return jsonResponse({ message: "Cartones guardados con éxito" });
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: "Cartones guardados con éxito" })
+    };
+
   } catch (error) {
-    console.error("Error en save-cards.js:", error);
-    return jsonResponse({ error: error.message || error.toString() }, 500);
+    console.error("Error completo:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message, stack: error.stack })
+    };
   }
 }
