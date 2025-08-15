@@ -1,9 +1,13 @@
-import { BlobStore } from "@netlify/blobs";
 
-export async function handler(event) {
+// CAMBIO CLAVE: Usamos la sintaxis require para importar
+const { BlobStore } = require("@netlify/blobs");
+
+exports.handler = async function(event) {
   try {
     const data = JSON.parse(event.body);
-    const store = new BlobStore({ name: "cartones", siteID: process.env.NETLIFY_BLOBS_SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN });
+    // NOTA: BlobStore está obsoleto, pero lo corregimos para que funcione si se usa.
+    // La forma correcta es getStore, pero adaptamos esta función.
+    const store = new BlobStore("cartones");
 
     await store.set("cartones_guardados", JSON.stringify(data));
 
