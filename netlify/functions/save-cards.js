@@ -1,32 +1,45 @@
-// Usamos la sintaxis require para máxima compatibilidad.
+const { getStore } = require("@netlify/blobs");
+
 exports.handler = async (event) => {
-  // Verificamos que sea un POST, como antes.
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ message: 'Método no permitido' }),
-    };
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, body: JSON.stringify({ error: "Method Not Allowed" }) };
   }
 
-  // ¡NO HACEMOS NADA MÁS! Solo devolvemos un mensaje de éxito.
   try {
     const cards = JSON.parse(event.body);
-    const numCards = cards.length;
+    if (!Array.isArray(cards) || cards.length === 0) {
+      return { statusCode: 400, body: JSON.stringify({ error: "No se proporcionaron cartones." }) };
+    }
+
+    // Usamos el almacén correcto
+    const store = getStore("cartones-venta");
+
+    // Limpiamos los cartones de la venta anterior
+    const { blobs } = await store.list();
+    for (const blob of blobs) {
+      await store.delete(blob.key);
+    }
+
+    // Guardamos los nuevos cartones
+    for (const card of cards) {
+      const cardId = `card-${card.id}`;
+      const cardData = {
+        id: card.id,
+        numbers: card.numbers, // 'numbers' contiene la matriz
+        status: "disponible", // Estado inicial
+      };
+      await store.setJSON(cardId, cardData);
+    }
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ 
-        message: `¡PRUEBA EXITOSA! La función fue invocada y recibió ${numCards} cartones.` 
-      }),
+      body: JSON.stringify({ message: `¡Éxito! Se han guardado ${cards.length} cartones para la venta.` }),
     };
   } catch (error) {
-    // Si falla incluso al leer los datos, lo sabremos.
+    console.error("Error en save-cards:", error);
     return {
-      statusCode: 400, // Bad Request
-      body: JSON.stringify({
-        error: "La función fue invocada, pero los datos enviados no son válidos.",
-        details: error.message
-      })
-    }
+      statusCode: 500,
+      body: JSON.stringify({ error: "Fallo interno en la función al guardar.", details: error.message }),
+    };
   }
 };

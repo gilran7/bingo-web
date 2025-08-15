@@ -1,26 +1,33 @@
-// CAMBIO CLAVE: Usamos la sintaxis require para importar
-const { BlobStore } = require("@netlify/blobs");
+const { getStore } = require("@netlify/blobs");
 
-exports.handler = async function() {
+exports.handler = async () => {
   try {
-    const store = new BlobStore("cartones");
+    // Nos conectamos al mismo almacén donde guardamos los cartones
+    const store = getStore("cartones-venta");
 
-    const data = await store.get("cartones_guardados");
-    if (!data) {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ error: "No hay cartones guardados" })
-      };
+    // Obtenemos la lista de todos los cartones guardados
+    const { blobs } = await store.list();
+
+    const availableCards = [];
+    for (const blob of blobs) {
+      // Pedimos cada cartón como un objeto JSON
+      const cardData = await store.get(blob.key, { type: "json" });
+      
+      // Solo nos interesan los que están disponibles para la venta
+      if (cardData && cardData.status === 'disponible') {
+        availableCards.push(cardData);
+      }
     }
 
     return {
       statusCode: 200,
-      body: data
+      body: JSON.stringify(availableCards),
     };
   } catch (error) {
+    console.error("Error en obtener-cartones:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({ error: "No se pudieron obtener los cartones.", details: error.message }),
     };
   }
-}
+};
