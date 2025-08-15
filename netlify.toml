@@ -1,13 +1,9 @@
-[functions]
-node_bundler = "esbuild"
-external_node_modules = ["@netlify/functions", "@netlify/blobs"]
-
 [build]
-functions = "netlify/functions"
-publish = "."
+  publish = "."
+  functions = "netlify/functions"
 
-[dev]
-functions = "netlify/functions"
+[functions]
+  node_bundler = "esbuild"
 
 [functions.environment]
-NODE_VERSION = "20"
+  NODE_VERSION = "20"

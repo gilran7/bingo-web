@@ -1,27 +1,21 @@
-// netlify/functions/get-available-cards.js
 import { jsonResponse } from "./_utils.js";
-import { getStore } from "@netlify/blobs";
+import { createClient } from "@netlify/blobs";
 
-export async function handler() {
+export default async function handler() {
   try {
-    const store = getStore("bingo-cards");
-    const { blobs } = await store.list();
+    const client = createClient({
+      siteID: process.env.NETLIFY_SITE_ID,
+      token: process.env.NETLIFY_API_TOKEN
+    });
 
-    const available = [];
-    for (const b of blobs) {
-      if (!b.key.startsWith("card:")) continue;
-      const c = await store.getJSON(b.key);
-      if (c?.status === "disponible") {
-        available.push({ id: c.id, numbers: c.numbers });
-      }
-    }
+    const store = client.store("bingo-cards");
+    const cardsData = await store.getJSON("cards.json") || [];
 
-    return jsonResponse({ ok: true, cards: available });
-  } catch (err) {
-    console.error("get-available-cards error:", err);
-    return jsonResponse(
-      { error: "Error al obtener cartones", details: err.message },
-      500
-    );
+    const availableCards = cardsData.filter(card => card.status !== "vendido");
+
+    return jsonResponse({ cards: availableCards });
+  } catch (error) {
+    console.error(error);
+    return jsonResponse({ error: "Failed to fetch cards.", details: error.message }, 500);
   }
 }

@@ -1,12 +1,7 @@
 {
-  "name": "bingo-web",
+  "name": "proyectobingo",
   "version": "1.0.0",
-  "description": "Sistema de venta y reserva de cartones de bingo",
-  "type": "module",
-  "engines": {
-    "node": ">=20"
-  },
-    "dependencies": {
+  "dependencies": {
     "@netlify/functions": "^2.5.1",
     "@netlify/blobs": "^5.0.0"
   }
