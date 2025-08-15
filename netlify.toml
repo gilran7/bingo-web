@@ -6,4 +6,5 @@
   node_bundler = "esbuild"
 
 [functions.environment]
-  NODE_VERSION = "20"
+  NETLIFY_BLOBS_SITE_ID = "43b54fa7-0838-4d9b-9e42-dac0635c803c"
+  NETLIFY_BLOBS_TOKEN = "nfp_rAotvsKaVH7by21gniP2iRaT3Bbowb94cfdf"
