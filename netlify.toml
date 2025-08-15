@@ -1,22 +1,18 @@
-# ======================================================
-# CONFIGURACIÓN BASADA EN LA ESTRUCTURA REAL DEL PROYECTO
-# ======================================================
-
 [build]
-  # 1. Instala las dependencias del package.json
   command = "npm install"
-  
-  # 2. El directorio público es la RAÍZ del proyecto ("."), porque ahí está tu index.html
   publish = "."
-  
-  # 3. La ruta REAL a la carpeta que contiene los archivos de las funciones
   functions = "netlify/functions"
 
-# Usamos el empaquetador más robusto para incluir las dependencias
 [functions]
   node_bundler = "zisi"
 
-# Redirección genérica
+# --- LÍNEAS NUEVAS Y CRÍTICAS ---
+# Esto le ordena a Netlify preparar (provisionar) un almacén de Blobs
+# llamado "cartones-venta" cuando despliegues el sitio.
+[[blobs]]
+  store_name = "cartones-venta"
+# --- FIN DE LAS LÍNEAS NUEVAS ---
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
