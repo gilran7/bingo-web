@@ -1,5 +1,5 @@
-// --- BARRERA DE SEGURIDAD (SIN CAMBIOS) ---
-const contraseñaCorrecta = 'BingoGil2024*';
+// --- BARRERA DE SEGURIDAD (SIN CAMBIOS) --- 
+const contraseñaCorrecta = 'BingoGil2024*'; 
 let accesoPermitido = false;
 if (sessionStorage.getItem('accesoBingoAdmin') === 'concedido') {
     accesoPermitido = true;
@@ -20,11 +20,12 @@ if (sessionStorage.getItem('accesoBingoAdmin') === 'concedido') {
 }
 if (!accesoPermitido) {
     document.body.innerHTML = '<h1 style="text-align: center; margin-top: 50px; font-family: sans-serif;">ACCESO DENEGADO</h1>';
-    throw new Error("Acceso denegado por contraseña incorrecta.");
+    throw new Error("Acceso denegado por contraseña incorrecta."); 
 }
 
 // --- CONSTANTES Y ELEMENTOS DEL DOM ---
 const botonCantar = document.getElementById('boton-cantar');
+// ... (resto de elementos del DOM sin cambios)
 const botonNuevaRonda = document.getElementById('boton-nueva-ronda');
 const botonAnadirCarton = document.getElementById('boton-anadir-carton');
 const numeroCantadoDisplay = document.getElementById('numero-cantado');
@@ -43,14 +44,6 @@ const botonMostrarGanadores = document.getElementById('boton-mostrar-ganadores')
 const modalBackdrop = document.getElementById('modal-ganador-backdrop');
 const modalCloseButton = document.getElementById('modal-close-button');
 const modalCartonContainer = document.getElementById('modal-carton-container');
-// =====================================================================
-// INICIO DEL CÓDIGO RESTAURADO Y AÑADIDO
-// =====================================================================
-const botonGuardarAlmacen = document.getElementById('boton-guardar-almacen');
-// =====================================================================
-// FIN DEL CÓDIGO RESTAURADO Y AÑADIDO
-// =====================================================================
-
 
 // --- VARIABLES DEL JUEGO ---
 let numerosCantados = [];
@@ -79,65 +72,81 @@ async function enviarReservaAdmin(idCarton) {
     formData.append('form-name', 'reservas-bingo');
     formData.append('cartonId', idCarton);
     formData.append('timestamp', Date.now().toString());
-    await fetch('/', {
-        method: 'POST',
-        body: new URLSearchParams(formData)
-    });
+    await fetch('/', { method: 'POST', body: new URLSearchParams(formData) });
 }
 
 async function liberarReservaAdmin(submissionId) {
     await fetch('/.netlify/functions/release-reservation', {
         method: 'POST',
-        body: JSON.stringify({
-            submission_id: submissionId
-        })
+        body: JSON.stringify({ submission_id: submissionId })
     });
 }
 
-// =====================================================================
-// INICIO DEL CÓDIGO RESTAURADO Y AÑADIDO
-// =====================================================================
-async function guardarCartonesEnAlmacen() {
-    if (botonGuardarAlmacen) botonGuardarAlmacen.disabled = true;
-
+// --- NUEVA FUNCIÓN: GUARDAR CARTONES EN EL SERVIDOR ---
+// Esta función recopila los cartones desde el estado del juego (cartonesEnJuego) y
+// los envía a la Netlify Function save-cards. Maneja respuestas JSON y no-JSON.
+async function guardarCartonesEnServidor() {
+    const saveBtn = document.getElementById('guardar-cartones-almacen');
     try {
-        const cards = cartonesEnJuego.map(carton => ({
-            id: carton.id,
-            matriz: carton.matriz
-        }));
+        // Guardamos el estado local primero para asegurar consistencia
+        guardarEstadoDelJuego();
 
-        // Nueva lógica para manejar la respuesta del servidor correctamente
-        const response = await fetch("./netlify/functions/save-cards", {
-            method: "POST",
-            body: JSON.stringify({ cards }),
+        // Recolectamos los cartones desde el state (cartonesEnJuego)
+        const cards = cartonesEnJuego.map(c => {
+            // enviamos la matriz "plana" para simplificar en backend
+            return {
+                id: c.id,
+                numbers: c.matriz.flat().map(v => v === 'FREE' ? 'FREE' : v)
+            };
         });
 
-        const data = await response.json();
-
-        if (response.ok) {
-            alert(`✅ ${data.message}`);
-        } else {
-            alert(`❌ Hubo un error al guardar los cartones. Detalles: ${JSON.stringify(data)}`);
+        if (!Array.isArray(cards) || cards.length === 0) {
+            alert('No hay cartones para guardar en el servidor.');
+            return;
         }
 
-    } catch (error) {
-        console.error("Error de red al guardar cartones:", error);
-        alert(`❌ Hubo un problema de conexión o un error inesperado. Detalles: ${error.message}`);
+        if (saveBtn) saveBtn.disabled = true;
+        // Petición al endpoint
+        const response = await fetch('/.netlify/functions/save-cards', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cards })
+        });
+
+        // Intentamos parsear JSON; si falla, capturamos texto crudo
+        let data;
+        try {
+            data = await response.json();
+        } catch (jsonErr) {
+            const text = await response.text().catch(() => null);
+            data = { message: text || null };
+        }
+
+        // Lógica de presentación: éxito si response.ok
+        if (response.ok) {
+            // Mostrar mensaje de éxito (usa el message del servidor si existe)
+            alert(`✅ ${data.message || 'Cartones guardados correctamente'}`);
+        } else {
+            // Mostrar error con detalles (JSON o texto)
+            alert(`❌ Hubo un error al guardar los cartones. Detalles: ${JSON.stringify(data)}`);
+            console.error('Error al guardar cartones:', response.status, data);
+        }
+    } catch (err) {
+        console.error('Exception al guardar cartones:', err);
+        alert(`❌ Hubo un error al guardar los cartones. Detalles: ${err?.message || err}`);
     } finally {
-        if (botonGuardarAlmacen) botonGuardarAlmacen.disabled = false;
+        if (saveBtn) saveBtn.disabled = false;
     }
 }
-// =====================================================================
-// FIN DEL CÓDIGO RESTAURADO Y AÑADIDO
-// =====================================================================
 
 // --- Funciones de Guardado y Carga ---
 function guardarEstadoDelJuego() {
     const estado = {
-        cartones: cartonesEnJuego.map(carton => ({
-            id: carton.id,
-            matriz: carton.matriz,
+        cartones: cartonesEnJuego.map(carton => ({ 
+            id: carton.id, 
+            matriz: carton.matriz, 
             isActive: carton.isActive
+            // Ya no guardamos estadoVenta, lo obtendremos de la API
         })),
         cantados: numerosCantados,
         juegoTerminado: juegoTerminado,
@@ -163,6 +172,7 @@ async function cargarEstadoDelJuego() {
         estado.cartones.forEach(datosCarton => {
             reconstruirCartonDesdeDatos(datosCarton.id, datosCarton.matriz, datosCarton.isActive);
         });
+        // ... (resto de la función de carga sin cambios)
         numerosCantados = estado.cantados || [];
         juegoTerminado = estado.juegoTerminado || false;
         modoJuego = estado.modo || 'automatico';
@@ -174,22 +184,16 @@ async function cargarEstadoDelJuego() {
             });
             botonMostrarGanadores.disabled = false;
         }
-        if (estado.patron) {
-            selectPatron.value = estado.patron;
-            imagenPatron.src = `imagenes/patron_${estado.patron}.png`;
-        }
+        if (estado.patron) { selectPatron.value = estado.patron; imagenPatron.src = `imagenes/patron_${estado.patron}.png`; }
         actualizarTodosDisplays();
         if (juegoTerminado) {
             deshabilitarControlesFinDeJuego();
-            ganadoresInfo.forEach(ganador => {
-                document.getElementById(`carton-${ganador.id}`)?.classList.add('carton-ganador');
-            });
+            ganadoresInfo.forEach(ganador => { document.getElementById(`carton-${ganador.id}`)?.classList.add('carton-ganador'); });
         } else {
             displayModo.textContent = `Modo: ${modoJuego.charAt(0).toUpperCase() + modoJuego.slice(1)}`;
             botonModo.textContent = `Cambiar a Modo ${modoJuego === 'automatico' ? 'Manual' : 'Automático'}`;
             botonCantar.disabled = (modoJuego === 'manual');
-            if (modoJuego === 'manual') contenedorNumerosMaestros.classList.add('modo-manual');
-            else contenedorNumerosMaestros.classList.remove('modo-manual');
+            if (modoJuego === 'manual') contenedorNumerosMaestros.classList.add('modo-manual'); else contenedorNumerosMaestros.classList.remove('modo-manual');
         }
     } else {
         reiniciarSistemaCompleto();
@@ -207,15 +211,16 @@ async function iniciarNuevaRonda() {
     cartonesEnJuego.forEach(carton => {
         const esVendido = reservas.has(carton.id);
         const cartonDiv = document.getElementById(`carton-${carton.id}`);
-        if (cartonDiv) {
+        if(cartonDiv) {
             cartonDiv.classList.toggle('carton-vendido', esVendido);
             const btn = cartonDiv.querySelector('.marcar-vendido-btn');
-            if (btn) btn.textContent = esVendido ? 'Marcar Disponible' : 'Marcar Vendido';
+            if(btn) btn.textContent = esVendido ? 'Marcar Disponible' : 'Marcar Vendido';
         }
     });
 
     numerosCantados = [];
     juegoTerminado = false;
+    // ... (resto sin cambios)
     ganadoresInfo = [];
     indiceGanadorActual = 0;
     actualizarTodosDisplays();
@@ -235,7 +240,7 @@ async function reiniciarSistemaCompleto() {
     crearYAnadirCarton();
 }
 
-function crearTablaMaestra() {
+function crearTablaMaestra() { /* Sin cambios */
     contenedorNumerosMaestros.innerHTML = '';
     contenedorColumnasLetras.innerHTML = '';
     const letras = ['B', 'I', 'N', 'G', 'O'];
@@ -260,7 +265,7 @@ function crearTablaMaestra() {
 }
 
 // --- Funciones de Gestión de Cartones ---
-function generarMatrizDeCarton() {
+function generarMatrizDeCarton() { /* Sin cambios */
     const numerosPorColumna = { B: { min: 1, max: 15, numeros: [] }, I: { min: 16, max: 30, numeros: [] }, N: { min: 31, max: 45, numeros: [] }, G: { min: 46, max: 60, numeros: [] }, O: { min: 61, max: 75, numeros: [] } };
     let matriz = Array(5).fill(null).map(() => Array(5));
     for (let i = 0; i < 5; i++) { const letra = Object.keys(numerosPorColumna)[i]; for (let j = 0; j < 5; j++) { if (i === 2 && j === 2) { matriz[j][i] = 'FREE'; } else { let numero; const columna = numerosPorColumna[letra]; do { numero = Math.floor(Math.random() * (columna.max - columna.min + 1)) + columna.min; } while (columna.numeros.includes(numero)); columna.numeros.push(numero); matriz[j][i] = numero; } } }
@@ -283,13 +288,27 @@ function reconstruirCartonDesdeDatos(idCarton, matriz, isActive = true) {
 function construirElementoCarton(idCarton, matriz, isActive) {
     const esVendido = reservas.has(idCarton);
     const cartonDiv = document.createElement('div');
+    
+    // ======================================================
+    // INICIO DE LA CORRECCIÓN
+    // ======================================================
     cartonDiv.classList.add('carton-individual');
-    cartonDiv.classList.add('card');
+    cartonDiv.classList.add('card'); // <-- ¡AÑADIMOS ESTA LÍNEA CRUCIAL!
+    // ======================================================
+    // FIN DE LA CORRECCIÓN
+    // ======================================================
+
     if (!isActive) cartonDiv.classList.add('carton-inactivo');
     if (esVendido) cartonDiv.classList.add('carton-vendido');
     cartonDiv.id = `carton-${idCarton}`;
+    
     const textoBotonVendido = esVendido ? 'Marcar Disponible' : 'Marcar Vendido';
-    let cartonHTML = `<h4>Cartón #${idCarton}</h4><table><thead><tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr></thead><tbody>`;
+
+    cartonDiv.innerHTML = `<h4>Cartón #${idCarton}</h4>...`; // (tu HTML del cartón aquí)
+    //... Rellenar con tu HTML de tabla y controles
+    let cartonHTML = `
+        <h4>Cartón #${idCarton}</h4>
+        <table><thead><tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr></thead><tbody>`;
     for (let i = 0; i < 5; i++) {
         cartonHTML += '<tr>';
         for (let j = 0; j < 5; j++) {
@@ -298,16 +317,25 @@ function construirElementoCarton(idCarton, matriz, isActive) {
         }
         cartonHTML += '</tr>';
     }
-    cartonHTML += `</tbody></table><div class="controles-del-carton"><div class="control-activar-carton"><label for="activar-carton-${idCarton}">Juega:</label><input type="checkbox" id="activar-carton-${idCarton}" class="activar-carton-checkbox" ${isActive ? 'checked' : ''}></div><button class="marcar-vendido-btn" data-id="${idCarton}">${textoBotonVendido}</button></div>`;
+    cartonHTML += `</tbody></table>
+        <div class="controles-del-carton">
+            <div class="control-activar-carton">
+                <label for="activar-carton-${idCarton}">Juega:</label>
+                <input type="checkbox" id="activar-carton-${idCarton}" class="activar-carton-checkbox" ${isActive ? 'checked' : ''}>
+            </div>
+            <button class="marcar-vendido-btn" data-id="${idCarton}">${textoBotonVendido}</button>
+        </div>`;
     cartonDiv.innerHTML = cartonHTML;
+    
     return cartonDiv;
 }
 
 
-// --- Lógica de Juego y Event Listeners ---
+// --- Lógica de Juego y Event Listeners (con la nueva lógica de 'click') ---
+// ... (resto de funciones sin cambios)
 function marcarNumero(numero){if(numerosCantados.includes(numero)||juegoTerminado)return;numerosCantados.push(numero);actualizarTodosDisplays();guardarEstadoDelJuego();verificarGanadores()}function cantarNumeroAutomatico(){if(numerosCantados.length>=75)return;let nuevoNumero;do{nuevoNumero=Math.floor(Math.random()*75)+1}while(numerosCantados.includes(nuevoNumero));marcarNumero(nuevoNumero)}function retrocederNumero(){if(numerosCantados.length===0||juegoTerminado)return;numerosCantados.pop();actualizarTodosDisplays();guardarEstadoDelJuego()}function actualizarTodosDisplays(){document.querySelectorAll(".celda-maestra.cantado").forEach(c=>c.classList.remove("cantado"));document.querySelectorAll(".carton-individual td.marcado").forEach(c=>{if(c.textContent!=="★")c.classList.remove("marcado")});listaHistorial.innerHTML="";numerosCantados.forEach(num=>{document.getElementById(`maestra-${num}`)?.classList.add("cantado");cartonesEnJuego.forEach(carton=>{for(let i=0;i<5;i++)for(let j=0;j<5;j++)if(carton.matriz[i][j]===num)carton.elemento.querySelector("tbody").rows[i].cells[j].classList.add("marcado")})});const ultimos5=numerosCantados.slice(-5).reverse();ultimos5.forEach(num=>{const itemHistorial=document.createElement("div");itemHistorial.className="numero-historial";itemHistorial.textContent=num;listaHistorial.appendChild(itemHistorial)});const ultimoNumero=numerosCantados.length>0?numerosCantados[numerosCantados.length-1]:"--";numeroCantadoDisplay.textContent=ultimoNumero;botonRetroceder.disabled=numerosCantados.length===0||juegoTerminado}
-function verificarGanadores(){if(juegoTerminado)return;const patron=selectPatron.value;ganadoresInfo=[];const cartonesActivos=cartonesEnJuego.filter(carton=>carton.isActive);cartonesActivos.forEach(carton=>{const celdas=Array.from(carton.elemento.querySelector("tbody").rows).map(row=>Array.from(row.cells));let esGanador=false;const isMarked=(r,c)=>celdas[r][c].classList.contains("marcado");switch(patron){case"fila":for(let i=0;i<5;i++){if(celdas[i].every(c=>c.classList.contains("marcado")))esGanador=true}break;case"columna":for(let i=0;i<5;i++){if(celdas.every(f=>f[i].classList.contains("marcado")))esGanador=true}break;case"lnormal":esGanador=celdas.every(row=>row[0].classList.contains("marcado"))&&celdas[4].every(c=>c.classList.contains("marcado"));break;case"linvertida":esGanador=celdas.every(row=>row[4].classList.contains("marcado"))&&celdas[0].every(c=>c.classList.contains("marcado"));break;case"e":esGanador=celdas.every(row=>row[0].classList.contains("marcado"))&&celdas[0].every(c=>c.classList.contains("marcado"))&&celdas[2].every(c=>c.classList.contains("marcado"))&&celdas[4].every(c=>c.classList.contains("marcado"));break;case"x":esGanador=celdas.every((row,i)=>row[i].classList.contains("marcado"))&&celdas.every((row,i)=>row[4-i].classList.contains("marcado"));break;case"4esquinas":esGanador=isMarked(0,0)&&isMarked(0,4)&&isMarked(4,0)&&isMarked(4,4);break;case"cruzpequeña":esGanador=isMarked(1,2)&&isMarked(2,1)&&isMarked(2,2)&&isMarked(2,3)&&isMarked(3,2);break;case"cruzgrande":esGanador=celdas[2].every(c=>c.classList.contains("marcado"))&&celdas.every(f=>f[2].classList.contains("marcado"));break;case"t":esGanador=celdas[0].every(c=>c.classList.contains("marcado"))&&celdas.every(row=>row[2].classList.contains("marcado"));break;case"bordecarton":esGanador=celdas[0].every(c=>c.classList.contains("marcado"))&&celdas[4].every(c=>c.classList.contains("marcado"))&&celdas.every(row=>row[0].classList.contains("marcado"))&&celdas.every(row=>row[4].classList.contains("marcado"));break;case"cartonlleno":esGanador=celdas.flat().every(c=>c.classList.contains("marcado"));break}if(esGanador)ganadoresInfo.push(carton)});if(ganadoresInfo.length>0){indiceGanadorActual=0;deshabilitarControlesFinDeJuego();const idsGanadores=ganadoresInfo.map(c=>c.id);idsGanadores.forEach(id=>{document.getElementById(`carton-${id}`).classList.add("carton-ganador")});botonMostrarGanadores.disabled=false;setTimeout(()=>{alert(`¡¡¡ B I N G O !!!\n\nGanador(es): Cartón #${idsGanadores.join(", #")}\nPatrón: ${patron.toUpperCase()}`)},200);guardarEstadoDelJuego()}}
-function deshabilitarControlesFinDeJuego(){juegoTerminado=true;botonCantar.disabled=true;botonAnadirCarton.disabled=true;botonModo.disabled=true;botonRetroceder.disabled=true;contenedorNumerosMaestros.classList.remove("modo-manual")}function verificarDuplicados(){const duplicados=[];const matricesString=cartonesEnJuego.map(carton=>JSON.stringify(carton.matriz.flat().filter(n=>n!=="FREE").sort((a,b)=>a-b)));for(let i=0;i<matricesString.length;i++){for(let j=i+1;j<matricesString.length;j++){if(matricesString[i]===matricesString[j]){duplicados.push(`- Cartón #${i+1} y Cartón #${j+1}`)}}}if(duplicados.length>0){alert(`¡Se encontraron cartones repetidos!\n\n${[...new Set(duplicados)].join("\n")}`)}else{alert("Verificación completada. No se encontraron cartones repetidos.")}}
+function verificarGanadores(){if(juegoTerminado)return;const patron=selectPatron.value;ganadoresInfo=[];const cartonesActivos=cartonesEnJuego.filter(carton=>carton.isActive);cartonesActivos.forEach(carton=>{const celdas=Array.from(carton.elemento.querySelector("tbody").rows).map(row=>Array.from(row.cells));let esGanador=false;const isMarked=(r,c)=>celdas[r][c].classList.contains("marcado");switch(patron){case"fila":for(let i=0;i<5;i++){if(celdas[i].every(c=>c.classList.contains("marcado")))esGanador=true}break;case"columna":for(let i=0;i<5;i++){if(celdas.every(f=>f[i].classList.contains("marcado")))esGanador=true}break;case"lnormal":esGanador=celdas.every(row=>row[0].classList.contains("marcado"))&&celdas[4].every(c=>c.classList.contains("marcado"));break;case"linvertida":esGanador=celdas.every(row=>row[4].classList.contains("marcado"))&&celdas[0].every(c=>c.classList.contains("marcado"));break;case"e":esGanador=celdas.every(row=>row[0].classList.contains("marcado"))&&celdas[0].every(c=>c.classList.contains("marcado"))&&celdas[2].every(c=>c.classList.contains("marcado"))&&celdas[4].every(c=>c.classList.contains("marcado"));break;case"x":esGanador=celdas.every((row,i)=>row[i].classList.contains("marcado"))&&celdas.every((row,i)=>row[4-i].classList.contains("marcado"));break;case"4esquinas":esGanador=isMarked(0,0)&&isMarked(0,4)&&isMarked(4,0)&&isMarked(4,4);break;case"cruzpequeña":esGanador=isMarked(1,2)&&isMarked(2,1)&&isMarked(2,2)&&isMarked(2,3)&&isMarked(3,2);break;case"cruzgrande":esGanador=celdas[2].every(c=>c.classList.contains("marcado"))&&celdas.every(f=>f[2].classList.contains("marcado"));break;case"t":esGanador=celdas[0].every(c=>c.classList.contains("marcado"))&&celdas.every(row=>row[2].classList.contains("marcado"));break;case"bordecarton":esGanador=celdas[0].every(c=>c.classList.contains("marcado"))&&celdas[4].every(c=>c.classList.contains("marcado"))&&celdas.every(row=>row[0].classList.contains("marcado"))&&celdas.every(row=>row[4].classList.contains("marcado"));break;case"cartonlleno":esGanador=celdas.flat().every(c=>c.classList.contains("marcado"));break}if(esGanador)ganadoresInfo.push(carton)});if(ganadoresInfo.length>0){indiceGanadorActual=0;deshabilitarControlesFinDeJuego();const idsGanadores=ganadoresInfo.map(c=>c.id);idsGanadores.forEach(id=>{document.getElementById(`carton-${id}`).classList.add("carton-ganador")});botonMostrarGanadores.disabled=false;setTimeout(()=>{alert(`¡¡¡ B I N G O !!!\n\nGanador(es): Cartón #${idsGanadores.join(", #")}\nPatrón: ${patron.toUpperCase()}`)},200);guardarEstadoDelJuego()} }
+function deshabilitarControlesFinDeJuego(){juegoTerminado=true;botonCantar.disabled=true;botonAnadirCarton.disabled=true;botonModo.disabled=true;botonRetroceder.disabled=true;contenedorNumerosMaestros.classList.remove("modo-manual")}function verificarDuplicados(){const duplicados=[];const matricesString=cartonesEnJuego.map(carton=>JSON.stringify(carton.matriz.flat().filter(n=>n!=="FREE").sort((a,b)=>a-b)));for(let i=0;i<matricesString.length;i++){for(let j=i+1;j<matricesString.length;j++){if(matricesString[i]===matricesString[j]){duplicados.push(`- Cartón #${i+1} y Cartón #${j+1}`)}}}if(duplicados.length>0){alert(`¡Se encontraron cartones repetidos!\n\n${[...new Set(duplicados)].join("\n")}`)}else{alert("Verificación completada. No se encontraron cartones repetidos.")} }
 botonCantar.addEventListener('click', cantarNumeroAutomatico);
 botonAnadirCarton.addEventListener('click', crearYAnadirCarton);
 botonNuevaRonda.addEventListener('click', iniciarNuevaRonda);
@@ -354,7 +382,7 @@ zonaDeCartones.addEventListener('click', async (event) => {
         boton.disabled = true; // Deshabilitar para evitar clics dobles
         const idCarton = parseInt(boton.dataset.id);
         const cartonDiv = document.getElementById(`carton-${idCarton}`);
-
+        
         if (reservas.has(idCarton)) {
             // Liberar reserva
             await liberarReservaAdmin(reservas.get(idCarton));
@@ -368,7 +396,7 @@ zonaDeCartones.addEventListener('click', async (event) => {
             const submissions = await obtenerReservasAdmin();
             reservas.clear();
             submissions.forEach(sub => reservas.set(parseInt(sub.data.cartonId), sub.id));
-
+            
             cartonDiv.classList.add('carton-vendido');
             boton.textContent = 'Marcar Disponible';
         }
@@ -389,15 +417,14 @@ zonaDeCartones.addEventListener('change', (event) => {
     }
 });
 
-// =====================================================================
-// INICIO DEL CÓDIGO RESTAURADO Y AÑADIDO
-// =====================================================================
-botonGuardarAlmacen.addEventListener('click', guardarCartonesEnAlmacen);
-// =====================================================================
-// FIN DEL CÓDIGO RESTAURADO Y AÑADIDO
-// =====================================================================
-
 
 // --- Inicio de la Aplicación ---
 crearTablaMaestra();
 cargarEstadoDelJuego();
+
+// --- Conectar el botón "Guardar Cartones en Almacén" ---
+(function attachSaveButton() {
+    const btn = document.getElementById('guardar-cartones-almacen');
+    if (!btn) return;
+    btn.addEventListener('click', guardarCartonesEnServidor);
+})();
