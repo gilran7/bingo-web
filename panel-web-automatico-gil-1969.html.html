@@ -1,36 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Panel Bingo</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Bingo</title>
+<link rel="stylesheet" href="estilos.css">
 </head>
 <body>
-  <h1>Panel Bingo</h1>
-  <button id="guardarBtn">Guardar cartones</button>
+<h1>Panel Bingo</h1>
 
-  <script>
-    document.getElementById("guardarBtn").addEventListener("click", async () => {
-      const cartones = [
-        { id: 1, numeros: [1, 2, 3, 4, 5] },
-        { id: 2, numeros: [6, 7, 8, 9, 10] }
-      ];
+<!-- Controles principales -->
+<div class="controles">
+    <button id="boton-cantar">Cantar Número</button>
+    <button id="boton-nueva-ronda">Nueva Ronda</button>
+    <button id="boton-anadir-carton">Añadir Cartón</button>
+    <button id="boton-borrar-cartones">Borrar Todos los Cartones</button>
+    <button id="boton-verificar-duplicados">Verificar Duplicados</button>
+    <button id="boton-modo">Cambiar Modo</button>
+    <button id="boton-mostrar-ganadores">Mostrar Ganadores</button>
+    <button id="boton-guardar-cartones">Guardar Cartones</button>
+</div>
 
-      try {
-        const res = await fetch("/.netlify/functions/guardar-cartones", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(cartones)
-        });
-        const data = await res.json();
-        if (res.ok) {
-          alert("✅ " + data.message);
-        } else {
-          alert("Hubo un error al guardar los cartones.\nDetalles: " + JSON.stringify(data));
-        }
-      } catch (err) {
-        alert("Error de conexión: " + err.message);
-      }
-    });
-  </script>
+<!-- Display números cantados -->
+<div id="numero-cantado">--</div>
+<div id="lista-historial"></div>
+
+<!-- Contenedor de números maestros y letras -->
+<div id="contenedor-columnas-letras"></div>
+<div id="contenedor-numeros-maestros"></div>
+
+<!-- Zona de cartones -->
+<div id="zona-de-cartones"></div>
+
+<!-- Selector de patrón -->
+<select id="select-patron">
+    <option value="fila">Fila</option>
+    <option value="columna">Columna</option>
+    <option value="4esquinas">4 Esquinas</option>
+    <option value="cruzpequeña">Cruz Pequeña</option>
+    <option value="cruzgrande">Cruz Grande</option>
+    <option value="x">X</option>
+    <option value="t">T</option>
+    <option value="e">E</option>
+    <option value="bordecarton">Borde Cartón</option>
+    <option value="cartonlleno">Cartón Lleno</option>
+</select>
+<img id="imagen-patron" src="imagenes/patron_cartonvacio.png" alt="Patrón Seleccionado">
+
+<!-- Modal Ganador -->
+<div id="modal-ganador-backdrop" class="hidden">
+    <div id="modal-carton-container"></div>
+    <button id="modal-close-button">Cerrar</button>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
