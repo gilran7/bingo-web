@@ -1,7 +1,7 @@
 [build]
   command = "npm install"
   publish = "Bingo Web"
-  # CORRECCIÓN FINAL: Le decimos a Netlify la ruta real de tus funciones
+  # Le decimos a Netlify la ruta REAL de tus funciones
   functions = "netlify/functions"
 
 [functions]
