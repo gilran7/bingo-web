@@ -4,6 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
+    "@netlify/blobs": "^10.0.8",
     "node-fetch": "^2.6.7"
   }
 }
