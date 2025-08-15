@@ -1,10 +1,13 @@
 [build]
-  publish = "."
+  command = "npm install"
+  publish = "Bingo Web"
+  # CORRECCIÓN FINAL: Le decimos a Netlify la ruta real de tus funciones
   functions = "netlify/functions"
 
 [functions]
-  node_bundler = "esbuild"
+  node_bundler = "zisi"
 
-[functions.environment]
-  NETLIFY_BLOBS_SITE_ID = "43b54fa7-0838-4d9b-9e42-dac0635c803c"
-  NETLIFY_BLOBS_TOKEN = "nfp_rAotvsKaVH7by21gniP2iRaT3Bbowb94cfdf"
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -1,58 +1,106 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panel Bingo</title>
-<link rel="stylesheet" href="estilos.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Bingo</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .controles { margin-bottom: 20px; }
+        .controles button { margin-right: 10px; padding: 8px 12px; }
+        #zona-de-cartones { display: flex; flex-wrap: wrap; gap: 20px; }
+        .card { border: 1px solid #ccc; padding: 10px; }
+        table { border-collapse: collapse; text-align: center; }
+        th, td { border: 1px solid #ddd; width: 40px; height: 40px; }
+        th { background-color: #4682B4; color: white; }
+    </style>
 </head>
 <body>
-<h1>Panel Bingo</h1>
+    <h1>Panel Bingo</h1>
 
-<!-- Controles principales -->
-<div class="controles">
-    <button id="boton-cantar">Cantar Número</button>
-    <button id="boton-nueva-ronda">Nueva Ronda</button>
-    <button id="boton-anadir-carton">Añadir Cartón</button>
-    <button id="boton-borrar-cartones">Borrar Todos los Cartones</button>
-    <button id="boton-verificar-duplicados">Verificar Duplicados</button>
-    <button id="boton-modo">Cambiar Modo</button>
-    <button id="boton-mostrar-ganadores">Mostrar Ganadores</button>
-    <button id="boton-guardar-cartones">Guardar Cartones</button>
-</div>
+    <div class="controles">
+        <button id="boton-cantar">Cantar Número</button>
+        <button id="boton-nueva-ronda">Nueva Ronda</button>
+        <button id="boton-anadir-carton">Añadir Cartón</button>
+        <button id="boton-borrar-cartones">Borrar Todos los Cartones</button>
+        <button id="boton-verificar-duplicados">Verificar Duplicados</button>
+        <!-- Hemos simplificado los botones para volver a la base funcional -->
+    </div>
 
-<!-- Display números cantados -->
-<div id="numero-cantado">--</div>
-<div id="lista-historial"></div>
+    <!-- BOTÓN DEDICADO PARA GUARDAR EN LA NUBE -->
+    <div style="margin-bottom: 20px;">
+        <button id="guardar-cartones-almacen" style="background-color: #28a745; color: white; padding: 10px 15px; border: none; cursor: pointer; font-size: 16px;">
+            Guardar Cartones en Almacén para la Venta
+        </button>
+    </div>
 
-<!-- Contenedor de números maestros y letras -->
-<div id="contenedor-columnas-letras"></div>
-<div id="contenedor-numeros-maestros"></div>
+    <div id="display-numero-cantado" style="margin-bottom: 20px; font-size: 24px;">--</div>
 
-<!-- Zona de cartones -->
-<div id="zona-de-cartones"></div>
+    <div id="zona-de-cartones">
+        <!-- Los cartones generados por script.js aparecerán aquí -->
+    </div>
 
-<!-- Selector de patrón -->
-<select id="select-patron">
-    <option value="fila">Fila</option>
-    <option value="columna">Columna</option>
-    <option value="4esquinas">4 Esquinas</option>
-    <option value="cruzpequeña">Cruz Pequeña</option>
-    <option value="cruzgrande">Cruz Grande</option>
-    <option value="x">X</option>
-    <option value="t">T</option>
-    <option value="e">E</option>
-    <option value="bordecarton">Borde Cartón</option>
-    <option value="cartonlleno">Cartón Lleno</option>
-</select>
-<img id="imagen-patron" src="imagenes/patron_cartonvacio.png" alt="Patrón Seleccionado">
+    <!-- Dejamos el script.js original para la lógica del juego local -->
+    <script src="script.js"></script>
 
-<!-- Modal Ganador -->
-<div id="modal-ganador-backdrop" class="hidden">
-    <div id="modal-carton-container"></div>
-    <button id="modal-close-button">Cerrar</button>
-</div>
+    <!-- ESTE ES EL NUEVO SCRIPT, DEDICADO ÚNICAMENTE A LA VENTA -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const saveButton = document.getElementById('guardar-cartones-almacen');
+        if (saveButton) {
+            saveButton.addEventListener('click', async () => {
+                const cardsData = [];
+                // Tu script.js original ya debería añadir la clase 'card' al div contenedor de cada cartón.
+                // Si no lo hace, debemos añadir `contenedorCarton.classList.add('card');` en la función que crea los cartones.
+                const cardElements = document.querySelectorAll('.card');
 
-<script src="script.js"></script>
+                if (cardElements.length === 0) {
+                    alert("No se encontraron cartones en la página. Asegúrate de que tu script.js añade la clase 'card' al contenedor de cada cartón.");
+                    return;
+                }
+
+                cardElements.forEach((cardElement, index) => {
+                    const id = index + 1; // Asignamos un ID simple
+                    const numbers = Array.from(cardElement.querySelectorAll('td'))
+                                       .map(td => td.textContent === '★' ? 'FREE' : parseInt(td.textContent, 10))
+                                       .filter(n => n !== null && !isNaN(n) || n === 'FREE');
+                    
+                    if (numbers.length > 0) {
+                        cardsData.push({ id: id, numbers: numbers });
+                    }
+                });
+
+                if (cardsData.length === 0) {
+                    alert('No se pudieron leer los números de los cartones.');
+                    return;
+                }
+
+                alert('Guardando cartones en el servidor...');
+
+                try {
+                    // Llamamos a la función por su ruta directa y segura
+                    const response = await fetch('/.netlify/functions/save-cards', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(cardsData),
+                    });
+
+                    // Añadimos un mejor manejo de errores
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.details || `Error del servidor: ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    alert('¡ÉXITO! ' + result.message);
+
+                } catch (error) {
+                    console.error('Error detallado:', error);
+                    alert(`Hubo un error al guardar los cartones. Revisa la consola para más detalles.\nError: ${error.message}`);
+                }
+            });
+        }
+    });
+    </script>
 </body>
 </html>
