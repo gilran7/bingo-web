@@ -1,13 +1,13 @@
 # ======================================================
-# ESTA ES LA ÚNICA CONFIGURACIÓN VÁLIDA
+# CONFIGURACIÓN BASADA EN LA ESTRUCTURA REAL DEL PROYECTO
 # ======================================================
 
 [build]
   # 1. Instala las dependencias del package.json
   command = "npm install"
   
-  # 2. El directorio público que contiene el sitio
-  publish = "Bingo Web"
+  # 2. El directorio público es la RAÍZ del proyecto ("."), porque ahí está tu index.html
+  publish = "."
   
   # 3. La ruta REAL a la carpeta que contiene los archivos de las funciones
   functions = "netlify/functions"
@@ -16,7 +16,7 @@
 [functions]
   node_bundler = "zisi"
 
-# Redirección genérica para que las rutas funcionen
+# Redirección genérica
 [[redirects]]
   from = "/*"
   to = "/index.html"
