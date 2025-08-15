@@ -1,8 +1,9 @@
 {
-  "name": "proyectobingo",
+  "name": "bingo-panel",
   "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
   "dependencies": {
-    "@netlify/functions": "^2.5.1",
-    "@netlify/blobs": "^5.0.0"
+    "node-fetch": "^2.6.7"
   }
 }
