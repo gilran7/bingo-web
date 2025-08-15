@@ -11,22 +11,24 @@ exports.handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ error: "No se proporcionaron cartones." }) };
     }
 
-    // Usamos el almacén correcto
-    const store = getStore("cartones-venta");
+    // CAMBIO CRÍTICO: Usamos la conexión explícita con nuestras variables de entorno.
+    const store = getStore({
+        name: "cartones-venta",
+        siteID: process.env.NETLIFY_SITE_ID,
+        token: process.env.NETLIFY_API_TOKEN,
+    });
 
-    // Limpiamos los cartones de la venta anterior
     const { blobs } = await store.list();
     for (const blob of blobs) {
       await store.delete(blob.key);
     }
 
-    // Guardamos los nuevos cartones
     for (const card of cards) {
       const cardId = `card-${card.id}`;
       const cardData = {
         id: card.id,
-        numbers: card.numbers, // 'numbers' contiene la matriz
-        status: "disponible", // Estado inicial
+        numbers: card.numbers,
+        status: "disponible",
       };
       await store.setJSON(cardId, cardData);
     }
