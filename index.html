@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>¡Bienvenido al Bingo Automático!</title>
-    <!-- Puedes usar tus mismos estilos si quieres -->
-    <link rel="stylesheet" href="style.css"> 
+    <link rel="stylesheet" href="style.css">
     <style>
         body {
             display: flex;
@@ -47,6 +46,13 @@
         <br>
         <a href="comprar.html" class="button">Comprar Cartones</a>
     </div>
-    <!-- Pequeño cambio para forzar el redespliegue -->
+
+    <!-- FORMULARIO FANTASMA PARA LA BASE DE DATOS DE CARTONES (CORRECTO) -->
+    <form name="cartones-disponibles" netlify netlify-honeypot="bot-field" hidden>
+      <input type="text" name="id" />
+      <input type="text" name="numeros" />
+      <input type="text" name="status" />
+    </form>
+
 </body>
 </html>
