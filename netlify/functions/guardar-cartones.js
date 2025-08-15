@@ -1,4 +1,3 @@
-
 // CAMBIO CLAVE: Usamos la sintaxis require para importar
 const { BlobStore } = require("@netlify/blobs");
 
