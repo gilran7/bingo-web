@@ -1,138 +1,29 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>Comprar Cartones</title>
-  <style>
-    body { font-family: system-ui, Arial, sans-serif; padding: 16px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
-    .card-item { border: 1px solid #ddd; border-radius: 10px; padding: 12px; }
-    .actions { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
-    button { cursor: pointer; padding: 8px 12px; border-radius: 8px; border: 1px solid #ccc; }
-    #status { margin-top: 10px; font-weight: bold; }
-  </style>
 </head>
 <body>
   <h1>Comprar Cartones</h1>
-
-  <div id="cartones" class="grid"></div>
-
-  <div class="actions" id="acciones" style="display:none;">
-    <button id="btnComprar">Confirmar compra</button>
-    <button id="btnCancelar">Cancelar</button>
-  </div>
-
-  <div id="status"></div>
+  <div id="cartonesContainer"></div>
 
   <script>
-    const API = (fn) => `/.netlify/functions/${fn}`;
-    let currentId = null;
-    let timer = null;
-
-    function fmt(ms){
-      const s = Math.max(0, Math.floor(ms/1000));
-      const h = Math.floor(s/3600);
-      const m = Math.floor((s%3600)/60);
-      const ss = s%60;
-      return `${h}h ${m}m ${ss}s`;
-    }
-
-    function startCountdown(until) {
-      clearInterval(timer);
-      const status = document.getElementById('status');
-      const end = Number(until) || 0;
-      const tick = () => {
-        const rem = end - Date.now();
-        if (rem <= 0) {
-          clearInterval(timer);
-          status.textContent = "Reserva expirada. Liberando...";
-          if (currentId) release(currentId);
-          return;
+    async function cargarCartones() {
+      try {
+        const res = await fetch("/.netlify/functions/obtener-cartones");
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById("cartonesContainer").innerHTML =
+            "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+        } else {
+          document.getElementById("cartonesContainer").innerText = "Error al cargar cartones.";
         }
-        status.textContent = `Reservado. Tiempo restante: ${fmt(rem)}`;
-      };
-      tick();
-      timer = setInterval(tick, 1000);
-    }
-
-    async function load() {
-      const cont = document.getElementById('cartones');
-      cont.innerHTML = "Cargando...";
-      const res = await fetch(API("get-available-cards"));
-      const data = await res.json();
-      cont.innerHTML = "";
-
-      if (!data.ok) {
-        cont.textContent = data.error || "Error al cargar cartones";
-        return;
-      }
-
-      for (const c of data.cards) {
-        const div = document.createElement('div');
-        div.className = 'card-item';
-        div.innerHTML = `
-          <strong>Cartón ${c.id}</strong><br/>
-          <small>${(c.numbers || []).join(", ")}</small><br/>
-          <button data-id="${c.id}">Reservar</button>
-        `;
-        div.querySelector('button').onclick = () => reserve(c.id);
-        cont.appendChild(div);
+      } catch (err) {
+        document.getElementById("cartonesContainer").innerText = "Error de conexión.";
       }
     }
-
-    async function reserve(id) {
-      const resp = await fetch(API("reserve-card"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
-      });
-      const data = await resp.json();
-      if (!data.ok) {
-        alert(data.error || "No se pudo reservar");
-        await load();
-        return;
-      }
-      currentId = id;
-      document.getElementById('acciones').style.display = 'flex';
-      document.getElementById('btnComprar').onclick = () => confirmPurchase(id);
-      document.getElementById('btnCancelar').onclick = () => release(id);
-      startCountdown(data.reservedUntil);
-    }
-
-    async function release(id) {
-      await fetch(API("release-card"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
-      });
-      clearInterval(timer);
-      document.getElementById('acciones').style.display = 'none';
-      currentId = null;
-      document.getElementById('status').textContent = "Reserva liberada.";
-      await load();
-    }
-
-    async function confirmPurchase(id) {
-      const resp = await fetch(API("confirm-purchase"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
-      });
-      const data = await resp.json();
-      if (!data.ok) {
-        alert(data.error || "No se pudo confirmar la compra");
-        await load();
-        return;
-      }
-      clearInterval(timer);
-      document.getElementById('acciones').style.display = 'none';
-      currentId = null;
-      document.getElementById('status').textContent = "Compra confirmada. ¡Gracias!";
-      await load();
-    }
-
-    load();
+    cargarCartones();
   </script>
 </body>
 </html>

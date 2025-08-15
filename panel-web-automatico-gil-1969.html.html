@@ -1,140 +1,35 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mi Bingo Automático</title>
-  <link rel="stylesheet" href="style.css"/>
+  <meta charset="UTF-8">
+  <title>Panel Bingo</title>
 </head>
 <body>
-  <h1>BINGO AUTOMÁTICO PROFESIONAL</h1>
+  <h1>Panel Bingo</h1>
+  <button id="guardarBtn">Guardar cartones</button>
 
-  <div class="juego-container">
-    <div class="panel-izquierdo">
-      <div id="tabla-maestra">
-        <div id="contenedor-columnas-letras"></div>
-        <div id="contenedor-numeros-maestros"></div>
-      </div>
-
-      <button id="boton-anadir-carton">Añadir Cartón</button>
-      <button id="boton-verificar-duplicados">Verificar Duplicados</button>
-      <button id="boton-borrar-cartones">Borrar Todos los Cartones</button>
-
-      <!-- Botón para guardar en Blobs -->
-      <button id="guardar-cartones-almacen"
-              style="background-color:#28a745;color:#fff;width:100%;padding:10px;border:none;border-radius:5px;cursor:pointer;margin-top:10px;">
-        Guardar Cartones en Almacén
-      </button>
-    </div>
-
-    <div class="panel-derecho">
-      <div class="seccion-superior-fija">
-        <div class="controles-superiores">
-          <div class="displays-superiores-container">
-            <div id="visualizador-patron">
-              <h4>PATRÓN EN JUEGO</h4>
-              <img id="imagen-patron" src="imagenes/patron_lnormal.png" alt="Patrón de Bingo"/>
-            </div>
-            <div class="marcador-historial-container">
-              <div class="marcador">
-                <p>Último número cantado:</p>
-                <div id="numero-cantado">--</div>
-              </div>
-              <div id="panel-historial">
-                <h3>Últimos 5 Números</h3>
-                <div id="lista-historial"></div>
-              </div>
-            </div>
-          </div>
-
-          <div id="control-modo">
-            <button id="boton-modo">Cambiar a Modo Manual</button>
-            <span id="display-modo">Modo: Automático</span>
-          </div>
-          <div class="controles-principales">
-            <button id="boton-cantar">Cantar Número</button>
-            <button id="boton-retroceder" disabled>Retroceder</button>
-            <button id="boton-nueva-ronda">NUEVA RONDA</button>
-            <button id="boton-mostrar-ganadores" disabled>Mostrar Ganadores</button>
-          </div>
-        </div>
-        <hr/>
-        <div class="controles-cartones">
-          <select id="select-patron" name="patron" title="Seleccionar Patrón">
-            <option value="lnormal">L Normal</option>
-            <option value="linvertida">L Invertida</option>
-            <option value="4esquinas">4 Esquinas</option>
-            <option value="cruzpequeña">Cruz Pequeña</option>
-            <option value="cruzgrande">Cruz Grande</option>
-            <option value="x">Diagonal X</option>
-            <option value="e">Forma E</option>
-            <option value="t">Forma T</option>
-            <option value="fila">Fila Completa</option>
-            <option value="columna">Columna</option>
-            <option value="bordecarton">Borde Cartón</option>
-            <option value="cartonlleno">Cartón Lleno</option>
-          </select>
-        </div>
-      </div>
-      <div id="zona-de-cartones"></div>
-    </div>
-  </div>
-
-  <div id="modal-ganador-backdrop" class="hidden">
-    <div id="modal-ganador-content">
-      <button id="modal-close-button">&times;</button>
-      <div id="modal-carton-container"></div>
-    </div>
-  </div>
-
-  <script src="script.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const saveButton = document.getElementById('guardar-cartones-almacen');
-      if (!saveButton) return;
+    document.getElementById("guardarBtn").addEventListener("click", async () => {
+      const cartones = [
+        { id: 1, numeros: [1, 2, 3, 4, 5] },
+        { id: 2, numeros: [6, 7, 8, 9, 10] }
+      ];
 
-      saveButton.addEventListener('click', async () => {
-        const cardsData = [];
-        const cardElements = document.querySelectorAll('.card'); // tus cartones deben tener esta clase
-
-        cardElements.forEach((cardElement, index) => {
-          const numbers = Array.from(cardElement.querySelectorAll('td'))
-            .map(td => parseInt(td.innerText, 10))
-            .filter(num => !isNaN(num));
-
-          if (numbers.length) {
-            // ID estable: si el elemento tiene data-id la usamos, si no generamos uno
-            const id = cardElement.dataset.id || `carton_${index + 1}`;
-            cardsData.push({ id, numbers });
-          }
+      try {
+        const res = await fetch("/.netlify/functions/guardar-cartones", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(cartones)
         });
-
-        if (cardsData.length === 0) {
-          alert('No se encontraron cartones válidos en la página para guardar.');
-          return;
+        const data = await res.json();
+        if (res.ok) {
+          alert("✅ " + data.message);
+        } else {
+          alert("Hubo un error al guardar los cartones.\nDetalles: " + JSON.stringify(data));
         }
-
-        try {
-          const resp = await fetch('/.netlify/functions/save-cards', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cards: cardsData })
-          });
-
-          const contentType = resp.headers.get('content-type') || '';
-          const isJson = contentType.includes('application/json');
-          const data = isJson ? await resp.json() : { ok: false, error: await resp.text() };
-
-          if (!resp.ok || !data.ok) {
-            throw new Error(data.error || 'Error desconocido en el servidor');
-          }
-
-          alert('¡ÉXITO! Los cartones se han guardado en el almacén.');
-        } catch (err) {
-          console.error('Error al guardar cartones:', err);
-          alert(`Hubo un error al guardar los cartones.\nDetalles: ${err.message}`);
-        }
-      });
+      } catch (err) {
+        alert("Error de conexión: " + err.message);
+      }
     });
   </script>
 </body>
