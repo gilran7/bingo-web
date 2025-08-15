@@ -3,100 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Bingo</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .controles { margin-bottom: 20px; }
-        .controles button { margin-right: 10px; padding: 8px 12px; }
-        #zona-de-cartones { display: flex; flex-wrap: wrap; gap: 20px; }
-        .card { border: 1px solid #ccc; padding: 10px; }
-        table { border-collapse: collapse; text-align: center; }
-        th, td { border: 1px solid #ddd; width: 40px; height: 40px; }
-        th { background-color: #4682B4; color: white; }
-    </style>
+    <title>Mi Bingo Automático Profesional</title>
+    <!-- Vinculamos tu hoja de estilos principal -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Panel Bingo</h1>
+    <h1>BINGO AUTOMÁTICO PROFESIONAL</h1>
+    <hr>
 
-    <div class="controles">
-        <button id="boton-cantar">Cantar Número</button>
-        <button id="boton-nueva-ronda">Nueva Ronda</button>
-        <button id="boton-anadir-carton">Añadir Cartón</button>
-        <button id="boton-borrar-cartones">Borrar Todos los Cartones</button>
-        <button id="boton-verificar-duplicados">Verificar Duplicados</button>
-        <!-- Hemos simplificado los botones para volver a la base funcional -->
+    <div class="juego-container">
+        <!-- ============================================= -->
+        <!-- PANEL IZQUIERDO (TABLA MAESTRA Y CONTROLES)   -->
+        <!-- ============================================= -->
+        <div class="panel-izquierdo">
+            <div id="tabla-maestra">
+                <div id="contenedor-columnas-letras"></div>
+                <div id="contenedor-numeros-maestros"></div>
+            </div>
+            <div class="controles-cartones">
+                <button id="boton-anadir-carton">Añadir Cartón</button>
+                <button id="boton-verificar-duplicados">Verificar Duplicados</button>
+                <button id="boton-borrar-cartones">Borrar Todos los Cartones</button>
+                <button id="guardar-cartones-almacen" style="background-color: #28a745; color: white; width: 100%;">
+                    Guardar Cartones en Almacén
+                </button>
+            </div>
+        </div>
+
+        <!-- ============================================= -->
+        <!-- PANEL DERECHO (JUEGO Y CARTONES)              -->
+        <!-- ============================================= -->
+        <div class="panel-derecho">
+            <div class="seccion-superior-fija">
+                <div class="displays-superiores-container">
+                    <div id="visualizador-patron">
+                        <h4>PATRÓN EN JUEGO</h4>
+                        <img id="imagen-patron" src="imagenes/patron_lnormal.png" alt="Patrón L Normal">
+                    </div>
+                    <div class="marcador">
+                        <p>Último número cantado:</p>
+                        <div id="numero-cantado">--</div>
+                    </div>
+                    <div id="panel-historial">
+                        <h3>Últimos 5</h3>
+                        <div id="lista-historial"></div>
+                    </div>
+                </div>
+                
+                <div class="controles-superiores">
+                     <div class="controles-principales">
+                        <button id="boton-modo">Cambiar a Modo Manual</button>
+                        <span id="display-modo">Modo: Automatico</span>
+                        <button id="boton-cantar">Cantar Número</button>
+                        <button id="boton-retroceder" disabled>Retroceder</button>
+                        <button id="boton-nueva-ronda">NUEVA RONDA</button>
+                        <button id="boton-mostrar-ganadores" disabled>Mostrar Ganadores</button>
+                    </div>
+                    <div id="panel-patrones">
+                        <select id="select-patron">
+                            <option value="lnormal">L Normal</option>
+                            <option value="cartonlleno">Cartón Lleno</option>
+                            <option value="fila">Fila</option>
+                            <option value="columna">Columna</option>
+                            <option value="linvertida">L Invertida</option>
+                            <option value="e">Letra E</option>
+                            <option value="x">Letra X</option>
+                            <option value="4esquinas">4 Esquinas</option>
+                            <option value="cruzpequeña">Cruz Pequeña</option>
+                            <option value="cruzgrande">Cruz Grande</option>
+                            <option value="t">Letra T</option>
+                            <option value="bordecarton">Borde del Cartón</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="zona-de-cartones">
+                <!-- Los cartones generados por script.js aparecerán aquí -->
+            </div>
+        </div>
     </div>
 
-    <!-- BOTÓN DEDICADO PARA GUARDAR EN LA NUBE -->
-    <div style="margin-bottom: 20px;">
-        <button id="guardar-cartones-almacen" style="background-color: #28a745; color: white; padding: 10px 15px; border: none; cursor: pointer; font-size: 16px;">
-            Guardar Cartones en Almacén para la Venta
-        </button>
+    <!-- MODAL PARA MOSTRAR GANADORES (oculto por defecto) -->
+    <div id="modal-ganador-backdrop" class="hidden">
+        <div id="modal-ganador-content">
+            <button id="modal-close-button">&times;</button>
+            <h2>Cartón Ganador</h2>
+            <div id="modal-carton-container"></div>
+        </div>
     </div>
 
-    <div id="display-numero-cantado" style="margin-bottom: 20px; font-size: 24px;">--</div>
-
-    <div id="zona-de-cartones">
-        <!-- Los cartones generados por script.js aparecerán aquí -->
-    </div>
-
-    <!-- Dejamos el script.js original para la lógica del juego local -->
+    <!-- Tus scripts no necesitan cambios -->
     <script src="script.js"></script>
 
-    <!-- ESTE ES EL NUEVO SCRIPT, DEDICADO ÚNICAMENTE A LA VENTA -->
+    <!-- Script de guardado (el que corregimos en el paso anterior) -->
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         const saveButton = document.getElementById('guardar-cartones-almacen');
         if (saveButton) {
             saveButton.addEventListener('click', async () => {
-                const cardsData = [];
-                // Tu script.js original ya debería añadir la clase 'card' al div contenedor de cada cartón.
-                // Si no lo hace, debemos añadir `contenedorCarton.classList.add('card');` en la función que crea los cartones.
-                const cardElements = document.querySelectorAll('.card');
-
-                if (cardElements.length === 0) {
-                    alert("No se encontraron cartones en la página. Asegúrate de que tu script.js añade la clase 'card' al contenedor de cada cartón.");
+                if (typeof cartonesEnJuego === 'undefined' || cartonesEnJuego.length === 0) {
+                    alert("No hay cartones generados para guardar. Por favor, añade al menos un cartón.");
                     return;
                 }
+                const cardsData = cartonesEnJuego.map(carton => ({
+                    id: carton.id,
+                    numbers: carton.matriz
+                }));
 
-                cardElements.forEach((cardElement, index) => {
-                    const id = index + 1; // Asignamos un ID simple
-                    const numbers = Array.from(cardElement.querySelectorAll('td'))
-                                       .map(td => td.textContent === '★' ? 'FREE' : parseInt(td.textContent, 10))
-                                       .filter(n => n !== null && !isNaN(n) || n === 'FREE');
-                    
-                    if (numbers.length > 0) {
-                        cardsData.push({ id: id, numbers: numbers });
-                    }
-                });
-
-                if (cardsData.length === 0) {
-                    alert('No se pudieron leer los números de los cartones.');
-                    return;
-                }
-
-                alert('Guardando cartones en el servidor...');
-
+                saveButton.disabled = true;
+                saveButton.textContent = 'Guardando...';
+                
                 try {
-                    // Llamamos a la función por su ruta directa y segura
                     const response = await fetch('/.netlify/functions/save-cards', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(cardsData),
                     });
-
-                    // Añadimos un mejor manejo de errores
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.details || `Error del servidor: ${response.statusText}`);
-                    }
-
                     const result = await response.json();
+                    if (!response.ok) {
+                        throw new Error(result.details || result.error || 'Error desconocido del servidor.');
+                    }
                     alert('¡ÉXITO! ' + result.message);
-
                 } catch (error) {
-                    console.error('Error detallado:', error);
-                    alert(`Hubo un error al guardar los cartones. Revisa la consola para más detalles.\nError: ${error.message}`);
+                    console.error('Error detallado al guardar:', error);
+                    alert(`Hubo un error al guardar los cartones.\nError: ${error.message}`);
+                } finally {
+                    saveButton.disabled = false;
+                    saveButton.textContent = 'Guardar Cartones en Almacén';
                 }
             });
         }
