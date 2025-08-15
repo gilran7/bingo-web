@@ -1,72 +1,56 @@
-// Importamos el método 'getStore' desde la librería de Netlify Blobs.
-const { getStore } = require("@netlify/blobs");
+const fetch = require('node-fetch');
 
-// 'handler' es el nombre estándar para la función principal que Netlify ejecutará.
+// ID del formulario que Netlify creará. Debe coincidir con el 'name' del form en tu HTML.
+const FORM_ID = 'YOUR_FORM_ID'; // ¡REEMPLAZA ESTO EN EL SIGUIENTE PASO!
+const API_TOKEN = process.env.NETLIFY_API_TOKEN;
+const SITE_ID = process.env.NETLIFY_SITE_ID; // Netlify provee esta variable automáticamente
+
+const API_ENDPOINT = `https://api.netlify.com/api/v1/sites/${SITE_ID}/submissions`;
+
 exports.handler = async (event) => {
-  // 1. Verificación inicial: Solo permitimos peticiones de tipo POST.
-  if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405, // 405 significa "Método no permitido".
-      body: JSON.stringify({ error: "Solo se permite el método POST." })
-    };
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  console.log("Función 'save-cards' invocada. Intentando conectar con el almacén...");
-
   try {
-    // 2. Conexión al Almacén de Blobs.
-    // Esta es la línea que fallaba antes. Confiamos en que la nueva configuración
-    // en netlify.toml resuelva el problema.
-    const store = getStore("cartones-venta");
-    console.log("¡Éxito! Conexión con el almacén 'cartones-venta' establecida.");
-
-    // 3. Procesamiento de los datos recibidos.
     const cartones = JSON.parse(event.body);
     if (!Array.isArray(cartones) || cartones.length === 0) {
-      return {
-        statusCode: 400, // 400 significa "Petición incorrecta".
-        body: JSON.stringify({ error: "No se recibieron cartones o el formato es incorrecto." })
-      };
+      return { statusCode: 400, body: JSON.stringify({ error: 'No se recibieron cartones.' }) };
     }
 
-    // 4. Lógica de guardado: Iteramos sobre cada cartón y lo guardamos.
-    // Usamos Promise.all para que todas las operaciones de guardado se ejecuten en paralelo,
-    // lo cual es mucho más eficiente.
-    await Promise.all(cartones.map(carton => {
-      const idCarton = `carton-${carton.id}`;
-      const datosCarton = {
-        id: carton.id,
-        numeros: carton.matriz, // Guardamos la matriz de números
-        status: 'disponible', // Estado inicial
-        reservadoHasta: null, // Aún no está reservado
+    // Primero, borramos todos los cartones viejos para empezar de cero
+    // (Esta parte la implementaremos si es necesaria, por ahora nos enfocamos en guardar)
+
+    // Enviamos cada cartón como un "submission" de formulario
+    const promesasDeEnvio = cartones.map(carton => {
+      const payload = {
+        "form-name": "cartones-disponibles",
+        "id": carton.id.toString(),
+        "numeros": JSON.stringify(carton.matriz),
+        "status": "disponible"
       };
-      // Guardamos el objeto como un JSON en el almacén, usando su ID como clave.
-      return store.setJSON(idCarton, datosCarton);
-    }));
+      
+      return fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${API_TOKEN}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams(payload).toString()
+      });
+    });
 
-    const mensajeExito = `¡Operación completada! Se guardaron ${cartones.length} cartones exitosamente.`;
-    console.log(mensajeExito);
+    await Promise.all(promesasDeEnvio);
 
-    // 5. Respuesta de éxito.
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: mensajeExito }),
+      body: JSON.stringify({ message: `¡Éxito! Se han guardado ${cartones.length} cartones.` })
     };
-
   } catch (error) {
-    // 6. Manejo de errores detallado.
-    // Si algo falla, especialmente la conexión a 'getStore', lo capturamos aquí.
-    console.error("--- ERROR CATASTRÓFICO EN 'save-cards' ---");
-    console.error("Mensaje de error:", error.message);
-    console.error("Stack de error:", error.stack);
-    console.error("-----------------------------------------");
-
+    console.error('Error en save-cards:', error);
     return {
-      statusCode: 500, // 500 significa "Error interno del servidor".
-      body: JSON.stringify({
-        error: "No se pudieron guardar los cartones debido a un fallo interno.",
-        details: error.message,
-      }),
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Fallo al guardar los cartones.', details: error.message })
     };
   }
 };

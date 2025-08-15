@@ -5,6 +5,6 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
-    "@netlify/blobs": "^7.0.0"
+    "node-fetch": "^2.6.7"
   }
 }
