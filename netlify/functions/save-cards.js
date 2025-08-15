@@ -1,43 +1,32 @@
-// CAMBIO CLAVE: Usamos la sintaxis require para importar
-const { getStore } = require("@netlify/blobs");
-
+// Usamos la sintaxis require para máxima compatibilidad.
 exports.handler = async (event) => {
-  if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: JSON.stringify({ error: "Method Not Allowed" }) };
+  // Verificamos que sea un POST, como antes.
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ message: 'Método no permitido' }),
+    };
   }
 
+  // ¡NO HACEMOS NADA MÁS! Solo devolvemos un mensaje de éxito.
   try {
     const cards = JSON.parse(event.body);
-    if (!Array.isArray(cards) || cards.length === 0) {
-      return { statusCode: 400, body: JSON.stringify({ error: "No cards provided." }) };
-    }
-
-    const store = getStore("cartones-venta");
-
-    const { blobs } = await store.list();
-    for (const blob of blobs) {
-      await store.delete(blob.key);
-    }
-
-    for (const card of cards) {
-      const cardId = `card-${card.id}`;
-      const cardData = {
-        id: card.id,
-        numbers: card.numbers,
-        status: "disponible",
-      };
-      await store.setJSON(cardId, cardData);
-    }
+    const numCards = cards.length;
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: `¡Éxito! Se han guardado ${cards.length} cartones para la venta.` }),
+      body: JSON.stringify({ 
+        message: `¡PRUEBA EXITOSA! La función fue invocada y recibió ${numCards} cartones.` 
+      }),
     };
   } catch (error) {
-    console.error("Error en la función save-cards:", error);
+    // Si falla incluso al leer los datos, lo sabremos.
     return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Fallo interno en la función.", details: error.message }),
-    };
+      statusCode: 400, // Bad Request
+      body: JSON.stringify({
+        error: "La función fue invocada, pero los datos enviados no son válidos.",
+        details: error.message
+      })
+    }
   }
 };
