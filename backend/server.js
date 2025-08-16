@@ -13,27 +13,23 @@ const pool = new Pool({
 });
 
 // --- 3. MIDDLEWARE ---
-
-// --- ¡CAMBIO CRÍTICO! ---
-// Configuramos CORS para aceptar peticiones SOLAMENTE desde nuestro frontend en Netlify.
-// Esto es mucho más seguro que aceptar peticiones de cualquier sitio.
 const corsOptions = {
   origin: 'https://delicate-pudding-cda831.netlify.app',
-  optionsSuccessStatus: 200 // Para navegadores antiguos
+  optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
-// --- FIN DEL CAMBIO ---
-
 app.use(express.json());
 
-// --- 4. RUTAS (ENDPOINTS DE NUESTRA API) ---
+// --- ¡NUEVA LÍNEA DE DIAGNÓSTICO! ---
+// Imprimimos la configuración en la consola para verificarla en los logs de Render.
+console.log(`CORS configurado para permitir el origen: ${corsOptions.origin}`);
 
-// Ruta de prueba
+// --- 4. RUTAS (ENDPOINTS DE NUESTRA API) ---
+// ... (El resto del archivo no cambia) ...
 app.get('/', (req, res) => {
   res.send('¡El servidor del Bingo Automático está funcionando!');
 });
 
-// Endpoint para guardar un lote completo de cartones
 app.post('/guardar-lote-cartones', async (req, res) => {
   const cartones = req.body;
   try {
