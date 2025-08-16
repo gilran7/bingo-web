@@ -1,29 +1,27 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Comprar Cartones</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprar Cartones de Bingo</title>
+    <!-- ¡Importante! Vinculamos la nueva hoja de estilos -->
+    <link rel="stylesheet" href="comprar.css">
 </head>
 <body>
-  <h1>Comprar Cartones</h1>
-  <div id="cartonesContainer"></div>
 
-  <script>
-    async function cargarCartones() {
-      try {
-        const res = await fetch("/.netlify/functions/obtener-cartones");
-        const data = await res.json();
-        if (res.ok) {
-          document.getElementById("cartonesContainer").innerHTML =
-            "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
-        } else {
-          document.getElementById("cartonesContainer").innerText = "Error al cargar cartones.";
-        }
-      } catch (err) {
-        document.getElementById("cartonesContainer").innerText = "Error de conexión.";
-      }
-    }
-    cargarCartones();
-  </script>
+    <div class="store-container">
+        <h1>Cartones Disponibles</h1>
+        <p class="instructions">¡Elige tus cartones de la suerte para la próxima ronda!</p>
+
+        <!-- Este contenedor se llenará dinámicamente con los cartones desde JavaScript -->
+        <div id="cartones-disponibles-container">
+            <!-- Se mostrará un mensaje de carga mientras se obtienen los datos -->
+            <p class="mensaje-feedback">Cargando cartones...</p>
+        </div>
+    </div>
+
+    <!-- ¡Importante! Vinculamos el nuevo script de JavaScript -->
+    <script src="comprar.js"></script>
 </body>
 </html>

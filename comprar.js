@@ -1,112 +1,72 @@
-<script>
-const API = path => `/.netlify/functions/${path}`;
+document.addEventListener('DOMContentLoaded', () => {
+    // La URL de nuestro backend desplegado en Render
+    const BACKEND_URL = 'https://bingo-backend-nmxa.onrender.com';
+    const container = document.getElementById('cartones-disponibles-container');
 
-async function fetchAvailable() {
-  const res = await fetch(API('get-available-cards'));
-  const data = await res.json();
-  return data.cards || [];
-}
+    // Función para "dibujar" un único cartón de bingo en la página
+    function renderizarCarton(carton) {
+        const cartonDiv = document.createElement('div');
+        cartonDiv.classList.add('carton-venta');
+        cartonDiv.dataset.id = carton.id; // Guardamos el ID en el elemento
 
-function renderCards(container, cards) {
-  container.innerHTML = '';
-  for (const c of cards) {
-    const btn = document.createElement('button');
-    btn.textContent = `Cartón ${c.id}`;
-    btn.onclick = () => reserve(c.id);
-    btn.className = 'card-btn';
-    container.appendChild(btn);
-  }
-}
+        // La matriz de números viene como un string JSON, la convertimos de nuevo a un array
+        const matriz = JSON.parse(carton.numeros);
 
-let activeTimer = null;
+        let cartonHTML = `
+            <h4>Cartón #${carton.id}</h4>
+            <table>
+                <thead><tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr></thead>
+                <tbody>`;
+        
+        for (let i = 0; i < 5; i++) {
+            cartonHTML += '<tr>';
+            for (let j = 0; j < 5; j++) {
+                const valor = matriz[i][j];
+                cartonHTML += `<td>${valor === 'FREE' ? '★' : valor}</td>`;
+            }
+            cartonHTML += '</tr>';
+        }
+        
+        cartonHTML += `</tbody></table>`;
+        cartonDiv.innerHTML = cartonHTML;
 
-function startCountdown(msUntil, onExpire) {
-  const el = document.getElementById('status');
-  if (activeTimer) clearInterval(activeTimer);
-  function tick() {
-    const left = msUntil - Date.now();
-    if (left <= 0) {
-      el.textContent = 'Reserva expirada';
-      clearInterval(activeTimer);
-      onExpire();
-      return;
+        // ¡Aquí añadiremos la lógica para seleccionar y reservar el cartón en el futuro!
+        cartonDiv.addEventListener('click', () => {
+            alert(`Has seleccionado el cartón #${carton.id}`);
+        });
+
+        return cartonDiv;
     }
-    const h = Math.floor(left / (1000*60*60));
-    const m = Math.floor((left % (1000*60*60)) / (1000*60));
-    const s = Math.floor((left % (1000*60)) / 1000);
-    el.textContent = `Reservado. Tiempo restante: ${h}h ${m}m ${s}s`;
-  }
-  tick();
-  activeTimer = setInterval(tick, 1000);
-}
 
-async function reserve(id) {
-  const res = await fetch(API('reserve-card'), {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ id })
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    alert(data.error || 'No se pudo reservar');
-    await load();
-    return;
-  }
-  // Arranca countdown y muestra botón de comprar y liberar
-  startCountdown(data.reservedUntil, async () => {
-    await fetch(API('release-card'), {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ id })
-    });
-    await load();
-  });
+    // Función principal para pedir los cartones al servidor y mostrarlos
+    async function cargarCartonesDisponibles() {
+        try {
+            const response = await fetch(`${BACKEND_URL}/cartones-disponibles`);
 
-  const actions = document.getElementById('actions');
-  actions.innerHTML = '';
-  const buy = document.createElement('button');
-  buy.textContent = 'Confirmar compra';
-  buy.onclick = () => confirmPurchase(id);
-  const release = document.createElement('button');
-  release.textContent = 'Cancelar / Liberar';
-  release.onclick = () => releaseCard(id);
-  actions.appendChild(buy);
-  actions.appendChild(release);
-}
+            if (!response.ok) {
+                throw new Error('La respuesta del servidor no fue exitosa.');
+            }
 
-async function releaseCard(id) {
-  await fetch(API('release-card'), {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ id })
-  });
-  document.getElementById('status').textContent = 'Reserva liberada';
-  if (activeTimer) clearInterval(activeTimer);
-  await load();
-}
+            const cartones = await response.json();
 
-async function confirmPurchase(id) {
-  const res = await fetch(API('confirm-purchase'), {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ id })
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    alert(data.error || 'No se pudo comprar');
-    return;
-  }
-  if (activeTimer) clearInterval(activeTimer);
-  document.getElementById('status').textContent = '¡Compra confirmada!';
-  document.getElementById('actions').innerHTML = '';
-  await load();
-}
+            // Limpiamos el mensaje de "Cargando..."
+            container.innerHTML = '';
 
-async function load() {
-  const container = document.getElementById('cards');
-  const cards = await fetchAvailable();
-  renderCards(container, cards);
-}
+            if (cartones.length === 0) {
+                container.innerHTML = '<p class="mensaje-feedback">¡No hay cartones a la venta en este momento, vuelve pronto!</p>';
+            } else {
+                cartones.forEach(carton => {
+                    const cartonElemento = renderizarCarton(carton);
+                    container.appendChild(cartonElemento);
+                });
+            }
 
-document.addEventListener('DOMContentLoaded', load);
-</script>
+        } catch (error) {
+            console.error('Error al cargar los cartones:', error);
+            container.innerHTML = '<p class="mensaje-error">Error de conexión. Por favor, intenta de nuevo más tarde.</p>';
+        }
+    }
+
+    // ¡Iniciamos todo el proceso!
+    cargarCartonesDisponibles();
+});

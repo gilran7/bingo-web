@@ -1,169 +1,95 @@
+/* --- Estilos Generales --- */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f4f7f6;
+    margin: 0;
+    padding: 20px;
+}
+
 /* --- Contenedores Principales --- */
 .store-container {
     max-width: 1200px;
     margin: auto;
     padding: 20px;
-    background: #fff;
+    background: #ffffff;
     border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+h1 {
+    text-align: center;
+    color: #333;
 }
 
 .instructions {
     text-align: center;
     font-size: 1.1em;
     color: #555;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
 }
 
 /* --- Zona de Cartones --- */
 #cartones-disponibles-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 20px;
     justify-content: center;
     padding: 20px 0;
-    min-height: 150px; /* Evita que la página "salte" mientras cargan los cartones */
+    min-height: 200px; 
 }
 
+/* --- Estilo de Cada Cartón a la Venta --- */
 .carton-venta {
-    border: 2px solid #ccc;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative; /* Clave para posicionar las etiquetas de estado */
-}
-
-/* MEJORA: Ya no se usa la clase .selected, se puede eliminar */
-/* .carton-venta.selected { ... } */
-
-/* MEJORA: Estilo para cartones reservados por OTROS o en el carrito del cliente */
-.carton-venta.reservado {
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
-/* --- Etiqueta de Estado (VENDIDO / EN CARRITO) --- */
-.estado-label {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    font-weight: bold;
-    text-align: center;
-    pointer-events: none; /* Evita que la etiqueta bloquee el clic */
-    z-index: 10;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Le da un poco de profundidad */
-    width: 90%; /* Asegura que el texto se ajuste bien */
-}
-
-/* MEJORA: Distinción de colores para la etiqueta */
-.reservado .estado-label {
-    background-color: rgba(220, 53, 69, 0.85); /* ROJO para "VENDIDO / RESERVADO" */
-}
-
-.reservado .estado-label:not(:empty):not(:contains("EN TU CARRITO")) + h4 {
-    opacity: 0.2; /* Opcional: atenúa el título si está vendido */
-}
-
-/* Estilo específico cuando es "EN TU CARRITO" */
-.estado-label:empty + h4 { display: block; } /* Asegura que se vea el título si no hay etiqueta */
-.estado-label:not(:empty) + h4 { opacity: 0.2; } /* Oculta un poco el título si hay etiqueta */
-.carton-venta.reservado:has(.estado-label:contains("EN TU CARRITO")) .estado-label {
-    background-color: rgba(40, 167, 69, 0.85); /* VERDE para "EN TU CARRITO" */
-}
-
-
-/* --- Formulario de Compra --- */
-.checkout-form-container {
-    background: #f9f9f9;
-    padding: 20px;
-    border-radius: 8px;
+    background-color: #fff;
     border: 1px solid #ddd;
-    margin-top: 30px;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-.form-group input {
-    width: 100%;
+    border-radius: 8px;
     padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    box-sizing: border-box;
-}
-
-/* --- Carrito de Compras --- */
-#carrito-container {
-    margin-top: 20px;
-    padding: 15px;
-    background: #e3f2fd;
-    border-radius: 5px;
-}
-
-#lista-carrito {
-    list-style: none;
-    padding: 0;
-}
-
-#lista-carrito li {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 5px 0;
-}
-
-.quitar-del-carrito {
-    margin-left: 10px;
-    padding: 2px 8px;
-    font-size: 0.8em;
-    background-color: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 3px;
     cursor: pointer;
-    transition: background-color 0.2s; /* MEJORA: Transición suave */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    flex-basis: 220px; /* Ancho base de cada cartón */
 }
 
-/* MEJORA: Efecto hover para el botón de quitar */
-.quitar-del-carrito:hover {
-    background-color: #c82333;
+.carton-venta:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
 }
 
+.carton-venta h4 {
+    margin: 0 0 10px 0;
+    text-align: center;
+    color: #34495e;
+}
 
-/* --- Botón de Envío Principal --- */
-.submit-button {
-    background-color: #28a745; /* Verde ligeramente distinto */
-    color: white;
-    border: none;
+.carton-venta table {
+    border-collapse: collapse;
     width: 100%;
-    padding: 15px;
-    font-size: 1.2em;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.2s;
 }
 
-.submit-button:hover {
-    background-color: #218838;
+.carton-venta th, .carton-venta td {
+    width: 20%; /* 5 columnas = 100% / 5 */
+    height: 35px;
+    text-align: center;
+    font-size: 1em;
+    border: 1px solid #ccc;
 }
 
-/* MEJORA: Estilos para mensajes de feedback (Cargando, Errores) */
-.mensaje-error, .mensaje-feedback {
+.carton-venta th {
+    background-color: #3498db;
+    color: white;
+}
+
+/* --- Mensajes de Feedback (Cargando, Errores) --- */
+.mensaje-feedback, .mensaje-error {
     text-align: center;
     font-size: 1.2em;
     padding: 20px;
     border-radius: 5px;
     margin: 20px;
+    width: 100%;
+}
+
+.mensaje-feedback {
+    color: #555;
 }
 
 .mensaje-error {
