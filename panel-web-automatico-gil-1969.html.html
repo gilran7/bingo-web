@@ -93,19 +93,27 @@
         </div>
     </div>
 
-    <!-- Tus scripts no necesitan cambios -->
+    <!-- Tu script principal no necesita cambios -->
     <script src="script.js"></script>
 
-    <!-- Script de guardado (el que corregimos en el paso anterior) -->
+    <!-- ===================================================================== -->
+    <!-- INICIO DEL NUEVO SCRIPT DE GUARDADO -->
+    <!-- ===================================================================== -->
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         const saveButton = document.getElementById('guardar-cartones-almacen');
+
+        // --- ¡CAMBIO CLAVE! Definimos la URL de nuestro nuevo servidor ---
+        const BACKEND_URL = 'https://bingo-backend-nmxa.onrender.com';
+
         if (saveButton) {
             saveButton.addEventListener('click', async () => {
                 if (typeof cartonesEnJuego === 'undefined' || cartonesEnJuego.length === 0) {
-                    alert("No hay cartones generados para guardar. Por favor, añade al menos un cartón.");
+                    alert("No hay cartones generados para guardar.");
                     return;
                 }
+
+                // El formato de los datos que enviamos NO cambia.
                 const cardsData = cartonesEnJuego.map(carton => ({
                     id: carton.id,
                     numbers: carton.matriz
@@ -115,16 +123,23 @@
                 saveButton.textContent = 'Guardando...';
                 
                 try {
-                    const response = await fetch('/.netlify/functions/save-cards', {
+                    // --- ¡CAMBIO CLAVE! Apuntamos al endpoint correcto de nuestro nuevo servidor ---
+                    const response = await fetch(`${BACKEND_URL}/guardar-lote-cartones`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
+                        // ¡Importante! El backend espera un array, no un objeto.
                         body: JSON.stringify(cardsData),
                     });
+
                     const result = await response.json();
+
                     if (!response.ok) {
-                        throw new Error(result.details || result.error || 'Error desconocido del servidor.');
+                        // Usamos el mensaje de error que nos da nuestro propio backend
+                        throw new Error(result.error || 'Error desconocido del servidor.');
                     }
+
                     alert('¡ÉXITO! ' + result.message);
+
                 } catch (error) {
                     console.error('Error detallado al guardar:', error);
                     alert(`Hubo un error al guardar los cartones.\nError: ${error.message}`);
@@ -136,10 +151,15 @@
         }
     });
     </script>
-   <!-- FORMULARIO FANTASMA PARA GUARDADO MASIVO -->
-<form name="cartones-disponibles" netlify netlify-honeypot="bot-field" hidden>
-  <input type="text" name="batchId" />
-  <textarea name="cartonesData"></textarea>
-</form>
+    <!-- ===================================================================== -->
+    <!-- FIN DEL NUEVO SCRIPT DE GUARDADO -->
+    <!-- ===================================================================== -->
+
+   <!-- Este formulario ya no es leído por Netlify, pero no hace daño dejarlo -->
+   <form name="cartones-disponibles" netlify netlify-honepot="bot-field" hidden>
+     <input type="text" name="batchId" />
+     <textarea name="cartonesData"></textarea>
+   </form>
+
 </body>
 </html>
