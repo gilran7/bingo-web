@@ -1,74 +1,78 @@
-// --- 1. IMPORTACIONES ---
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 
-// Verificamos si la variable de entorno crucial existe.
+// 1. Verificación de Variables de Entorno
 if (!process.env.DATABASE_URL) {
-  console.error("ERROR CATASTRÓFICO: La variable de entorno DATABASE_URL no está definida.");
-  process.exit(1); 
+  console.error("ERROR: DATABASE_URL no está definida.");
+  process.exit(1);
 }
 
-// --- 2. CONFIGURACIÓN ---
+// 2. Configuración de la Base de Datos
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+// 3. Creación de la Aplicación Express
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// --- ¡LA CORRECCIÓN ESTÁ AQUÍ! ---
-// La configuración completa del pool debe estar presente.
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { 
-    rejectUnauthorized: false 
-  }
-});
-
-// --- ¡LA CORRECCIÓN ESTÁ AQUÍ! ---
-// La configuración completa de CORS debe estar presente.
+// 4. Middleware
 const corsOptions = {
   origin: 'https://bingo-frontend-4h3h.onrender.com',
   optionsSuccessStatus: 200
 };
-// --- FIN DE LA CORRECCIÓN ---
-
-// --- 3. MIDDLEWARE ---
 app.use(cors(corsOptions));
 app.use(express.json());
-console.log(`CORS configurado para permitir el origen: ${corsOptions.origin}`);
 
-// --- 4. RUTAS ---
+// 5. RUTAS DE LA API
+
+// Ruta de prueba
 app.get('/', (req, res) => {
-  res.send('¡El servidor del Bingo Automático está funcionando!');
+  res.send('Servidor del Bingo funcionando.');
 });
 
-app.post('/guardar-lote-cartones', async (req, res) => {
-  const cartones = req.body;
-  let client;
+// Ruta para obtener cartones disponibles
+app.get('/cartones-disponibles', async (req, res) => {
   try {
-    client = await pool.connect();
-    await client.query('BEGIN');
-    await client.query('DELETE FROM cartones');
-    for (const carton of cartones) {
-      const query = 'INSERT INTO cartones (id, numeros, status_venta, esta_activo) VALUES ($1, $2, $3, $4)';
-      const values = [carton.id, JSON.stringify(carton.numbers), 'disponible', false];
-      await client.query(query, values);
-    }
-    await client.query('COMMIT');
-    res.status(200).json({ message: `¡Lote de ${cartones.length} cartones guardado con éxito!` });
+    const result = await pool.query("SELECT * FROM cartones WHERE status_venta = 'disponible' ORDER BY id ASC");
+    res.status(200).json(result.rows);
   } catch (error) {
-    if (client) await client.query('ROLLBACK');
-    console.error('Error al guardar el lote de cartones:', error);
-    res.status(500).json({ error: 'Error interno del servidor al guardar los cartones.' });
-  } finally {
-    if (client) client.release();
+    console.error('Error al obtener cartones:', error);
+    res.status(500).json({ error: 'Error interno al obtener cartones.' });
   }
 });
 
+// Ruta para guardar un lote de cartones
+app.post('/guardar-lote-cartones', async (req, res) => {
+    const cartones = req.body;
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        await client.query('DELETE FROM cartones');
+        for (const carton of cartones) {
+            const query = 'INSERT INTO cartones (id, numeros, status_venta, esta_activo) VALUES ($1, $2, $3, $4)';
+            const values = [carton.id, JSON.stringify(carton.numbers), 'disponible', false];
+            await client.query(query, values);
+        }
+        await client.query('COMMIT');
+        res.status(200).json({ message: `Lote de ${cartones.length} cartones guardado.` });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error al guardar lote:', error);
+        res.status(500).json({ error: 'Error interno al guardar el lote.' });
+    } finally {
+        client.release();
+    }
+});
+
+// Ruta para reservar un cartón
 app.post('/reservar-carton/:id', async (req, res) => {
     const { id } = req.params;
-    let client;
+    const client = await pool.connect();
     try {
-        client = await pool.connect();
         await client.query('BEGIN');
         const checkQuery = "SELECT * FROM cartones WHERE id = $1 AND status_venta = 'disponible' FOR UPDATE";
         const checkResult = await client.query(checkQuery, [id]);
@@ -85,21 +89,21 @@ app.post('/reservar-carton/:id', async (req, res) => {
         await client.query(updateQuery, [expiracion, id]);
         
         await client.query('COMMIT');
-        
         res.status(200).json({ 
-            message: `¡Cartón #${id} reservado con éxito!`,
+            message: `Cartón #${id} reservado.`,
             reservadoHasta: expiracion.toISOString() 
         });
     } catch (error) {
-        if (client) await client.query('ROLLBACK');
-        console.error(`Error al reservar el cartón #${id}:`, error);
-        res.status(500).json({ error: 'Error interno del servidor al intentar reservar.' });
+        await client.query('ROLLBACK');
+        console.error(`Error al reservar cartón #${id}:`, error);
+        res.status(500).json({ error: 'Error interno al reservar.' });
     } finally {
-        if (client) client.release();
+        client.release();
     }
 });
 
-// --- 5. INICIAR EL SERVIDOR ---
+// 6. Iniciar el Servidor
 app.listen(PORT, () => {
-  console.log(`Servidor escuchando en el puerto ${PORT}`);
+  console.log(`Servidor iniciado y escuchando en el puerto ${PORT}`);
+  console.log(`CORS configurado para origen: ${corsOptions.origin}`);
 });
