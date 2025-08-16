@@ -1,109 +1,62 @@
+// --- 1. IMPORTACIONES, CONFIGURACIÓN Y MIDDLEWARE (SIN CAMBIOS) ---
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
-
-// 1. Verificación de Variables de Entorno
-if (!process.env.DATABASE_URL) {
-  console.error("ERROR: DATABASE_URL no está definida.");
-  process.exit(1);
-}
-
-// 2. Configuración de la Base de Datos
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
-
-// 3. Creación de la Aplicación Express
+if (!process.env.DATABASE_URL) { /* ... */ }
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// 4. Middleware
-const corsOptions = {
-  origin: 'https://bingo-frontend-4h3h.onrender.com',
-  optionsSuccessStatus: 200
-};
+const pool = new Pool({ /* ... */ });
+const corsOptions = { /* ... */ };
 app.use(cors(corsOptions));
 app.use(express.json());
+console.log(`CORS configurado para permitir el origen: ${corsOptions.origin}`);
 
-// 5. RUTAS DE LA API
+// --- 4. RUTAS (ENDPOINTS DE NUESTRA API) ---
+app.get('/', (req, res) => { /* ... */ });
+app.post('/guardar-lote-cartones', async (req, res) => { /* ... (código existente) ... */ });
+app.get('/cartones-disponibles', async (req, res) => { /* ... (código existente) ... */ });
+app.post('/reservar-carton/:id', async (req, res) => { /* ... (código existente) ... */ });
 
-// Ruta de prueba
-app.get('/', (req, res) => {
-  res.send('Servidor del Bingo funcionando.');
-});
+// --- ¡NUEVO ENDPOINT PARA LIBERAR RESERVAS! ---
+app.post('/liberar-reservas-expiradas', async (req, res) => {
+    // Por seguridad, podemos añadir una "clave secreta" para asegurarnos
+    // de que solo nuestro Cron Job pueda llamar a este endpoint.
+    const cronSecret = process.env.CRON_SECRET;
+    const requestSecret = req.headers['authorization'];
 
-// Ruta para obtener cartones disponibles
-app.get('/cartones-disponibles', async (req, res) => {
-  try {
-    const result = await pool.query("SELECT * FROM cartones WHERE status_venta = 'disponible' ORDER BY id ASC");
-    res.status(200).json(result.rows);
-  } catch (error) {
-    console.error('Error al obtener cartones:', error);
-    res.status(500).json({ error: 'Error interno al obtener cartones.' });
-  }
-});
-
-// Ruta para guardar un lote de cartones
-app.post('/guardar-lote-cartones', async (req, res) => {
-    const cartones = req.body;
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        await client.query('DELETE FROM cartones');
-        for (const carton of cartones) {
-            const query = 'INSERT INTO cartones (id, numeros, status_venta, esta_activo) VALUES ($1, $2, $3, $4)';
-            const values = [carton.id, JSON.stringify(carton.numbers), 'disponible', false];
-            await client.query(query, values);
-        }
-        await client.query('COMMIT');
-        res.status(200).json({ message: `Lote de ${cartones.length} cartones guardado.` });
-    } catch (error) {
-        await client.query('ROLLBACK');
-        console.error('Error al guardar lote:', error);
-        res.status(500).json({ error: 'Error interno al guardar el lote.' });
-    } finally {
-        client.release();
+    if (!cronSecret || `Bearer ${cronSecret}` !== requestSecret) {
+        return res.status(401).json({ error: 'Acceso no autorizado.' }); // 401 Unauthorized
     }
-});
 
-// Ruta para reservar un cartón
-app.post('/reservar-carton/:id', async (req, res) => {
-    const { id } = req.params;
-    const client = await pool.connect();
+    let client;
     try {
-        await client.query('BEGIN');
-        const checkQuery = "SELECT * FROM cartones WHERE id = $1 AND status_venta = 'disponible' FOR UPDATE";
-        const checkResult = await client.query(checkQuery, [id]);
-
-        if (checkResult.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return res.status(409).json({ error: 'Este cartón ya no está disponible.' });
-        }
-
-        const expiracion = new Date();
-        expiracion.setHours(expiracion.getHours() + 23);
-
-        const updateQuery = "UPDATE cartones SET status_venta = 'reservado', reservado_hasta = $1 WHERE id = $2";
-        await client.query(updateQuery, [expiracion, id]);
+        client = await pool.connect();
         
-        await client.query('COMMIT');
-        res.status(200).json({ 
-            message: `Cartón #${id} reservado.`,
-            reservadoHasta: expiracion.toISOString() 
-        });
+        // Buscamos todos los cartones que están 'reservados' Y cuya fecha de expiración
+        // 'reservado_hasta' es anterior a la hora actual (NOW()).
+        const updateQuery = `
+            UPDATE cartones 
+            SET status_venta = 'disponible', reservado_hasta = NULL 
+            WHERE status_venta = 'reservado' AND reservado_hasta < NOW()
+            RETURNING id;
+        `; // 'RETURNING id' nos devolverá los IDs de los cartones que se liberaron.
+
+        const result = await client.query(updateQuery);
+        const numLiberados = result.rowCount; // Contamos cuántas filas fueron afectadas.
+
+        const mensaje = `Tarea de limpieza ejecutada. Se liberaron ${numLiberados} cartones expirados.`;
+        console.log(mensaje);
+        res.status(200).json({ message: mensaje, liberados: numLiberados });
+
     } catch (error) {
-        await client.query('ROLLBACK');
-        console.error(`Error al reservar cartón #${id}:`, error);
-        res.status(500).json({ error: 'Error interno al reservar.' });
+        console.error('Error en la tarea de liberación de reservas:', error);
+        res.status(500).json({ error: 'Error interno del servidor al ejecutar la tarea de limpieza.' });
     } finally {
-        client.release();
+        if (client) client.release();
     }
 });
 
-// 6. Iniciar el Servidor
-app.listen(PORT, () => {
-  console.log(`Servidor iniciado y escuchando en el puerto ${PORT}`);
-  console.log(`CORS configurado para origen: ${corsOptions.origin}`);
-});
+
+// --- 5. INICIAR EL SERVIDOR (SIN CAMBIOS) ---
+app.listen(PORT, () => { /* ... */ });
