@@ -1,16 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // La URL de nuestro backend desplegado en Render
     const BACKEND_URL = 'https://bingo-backend-nmxa.onrender.com';
     const container = document.getElementById('cartones-disponibles-container');
 
-    // Función para "dibujar" un único cartón de bingo en la página
+    // Función para renderizar un cartón (sin cambios)
     function renderizarCarton(carton) {
         const cartonDiv = document.createElement('div');
         cartonDiv.classList.add('carton-venta');
-        cartonDiv.dataset.id = carton.id; // Guardamos el ID en el elemento
+        cartonDiv.dataset.id = carton.id;
 
         // La matriz de números viene como un string JSON, la convertimos de nuevo a un array
-        const matriz = JSON.parse(carton.numeros);
+        // Nota: En la respuesta del servidor, 'numeros' ya es un objeto JSON, no un string.
+        // Si viniera como string, usaríamos JSON.parse(carton.numeros).
+        const matriz = carton.numeros;
 
         let cartonHTML = `
             <h4>Cartón #${carton.id}</h4>
@@ -30,7 +31,6 @@ document.addEventListener('DOMContentLoaded', () => {
         cartonHTML += `</tbody></table>`;
         cartonDiv.innerHTML = cartonHTML;
 
-        // ¡Aquí añadiremos la lógica para seleccionar y reservar el cartón en el futuro!
         cartonDiv.addEventListener('click', () => {
             alert(`Has seleccionado el cartón #${carton.id}`);
         });
@@ -38,19 +38,24 @@ document.addEventListener('DOMContentLoaded', () => {
         return cartonDiv;
     }
 
-    // Función principal para pedir los cartones al servidor y mostrarlos
+    // --- INICIO DE LA CORRECCIÓN ---
+    // Función principal para cargar los cartones (versión simplificada y más robusta)
     async function cargarCartonesDisponibles() {
         try {
+            // Hacemos la petición al endpoint correcto.
             const response = await fetch(`${BACKEND_URL}/cartones-disponibles`);
-
-            if (!response.ok) {
-                throw new Error('La respuesta del servidor no fue exitosa.');
-            }
-
+            
+            // Convertimos la respuesta a JSON. Si hay un error de red aquí, el 'catch' lo capturará.
             const cartones = await response.json();
 
-            // Limpiamos el mensaje de "Cargando..."
+            // Limpiamos el contenedor.
             container.innerHTML = '';
+
+            // Verificamos si la respuesta del servidor indica un error (ej. status 500)
+            if (!response.ok) {
+                // Usamos el mensaje de error que nuestro propio backend nos da.
+                throw new Error(cartones.error || 'Error del servidor.');
+            }
 
             if (cartones.length === 0) {
                 container.innerHTML = '<p class="mensaje-feedback">¡No hay cartones a la venta en este momento, vuelve pronto!</p>';
@@ -62,11 +67,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
         } catch (error) {
+            // Este bloque 'catch' ahora captura tanto errores de red como errores del servidor.
             console.error('Error al cargar los cartones:', error);
-            container.innerHTML = '<p class="mensaje-error">Error de conexión. Por favor, intenta de nuevo más tarde.</p>';
+            container.innerHTML = `<p class="mensaje-error">Error de conexión: ${error.message}. Por favor, intenta de nuevo más tarde.</p>`;
         }
     }
+    // --- FIN DE LA CORRECCIÓN ---
 
-    // ¡Iniciamos todo el proceso!
+    // Iniciamos el proceso
     cargarCartonesDisponibles();
 });
