@@ -14,7 +14,7 @@ const pool = new Pool({
 
 // --- 3. MIDDLEWARE ---
 const corsOptions = {
-  origin: 'https://delicate-pudding-cda831.netlify.app',
+  origin: 'https://bingo-frontend-4h3h.onrender.com',
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
