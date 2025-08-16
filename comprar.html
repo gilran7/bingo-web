@@ -1,11 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comprar Cartones de Bingo</title>
-    <!-- ¡Importante! Vinculamos la nueva hoja de estilos -->
     <link rel="stylesheet" href="comprar.css">
 </head>
 <body>
@@ -14,14 +12,51 @@
         <h1>Cartones Disponibles</h1>
         <p class="instructions">¡Elige tus cartones de la suerte para la próxima ronda!</p>
 
-        <!-- Este contenedor se llenará dinámicamente con los cartones desde JavaScript -->
         <div id="cartones-disponibles-container">
-            <!-- Se mostrará un mensaje de carga mientras se obtienen los datos -->
             <p class="mensaje-feedback">Cargando cartones...</p>
         </div>
+
+        <!-- --- ¡NUEVO! SECCIÓN DEL CARRITO Y FORMULARIO DE PAGO --- -->
+        <div id="checkout-section" class="hidden">
+            <h2>Tu Selección</h2>
+            
+            <div id="carrito-container">
+                <ul id="lista-carrito">
+                    <!-- Los cartones seleccionados aparecerán aquí -->
+                </ul>
+                <div id="total-container">
+                    <strong>Total a Pagar: <span id="total-a-pagar">0.00</span> €</strong>
+                </div>
+            </div>
+
+            <div class="checkout-form-container">
+                <h3>Completa tus Datos para Finalizar</h3>
+                <form id="purchase-form" novalidate>
+                    <div class="form-group">
+                        <label for="nombre">Nombre Completo</label>
+                        <input type="text" id="nombre" name="nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="whatsapp">Número de WhatsApp (Ej: 612345678)</label>
+                        <input type="tel" id="whatsapp" name="whatsapp" required pattern="[0-9]{9,15}">
+                    </div>
+                    <div class="form-group">
+                        <label for="transaccion">Últimos 4 Dígitos de la Transacción</label>
+                        <input type="text" id="transaccion" name="transaccion" required minlength="4" maxlength="4" pattern="[0-9]{4}">
+                    </div>
+                    <div class="form-group">
+                        <label for="comprobante">Adjuntar Comprobante de Pago</label>
+                        <input type="file" id="comprobante" name="comprobante" required accept="image/*">
+                    </div>
+                    
+                    <button type="submit" id="submit-purchase-button" class="submit-button" disabled>Confirmar Compra</button>
+                </form>
+            </div>
+        </div>
+        <!-- --- FIN DE LA NUEVA SECCIÓN --- -->
+
     </div>
 
-    <!-- ¡Importante! Vinculamos el nuevo script de JavaScript -->
     <script src="comprar.js"></script>
 </body>
 </html>

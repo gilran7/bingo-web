@@ -1,96 +1,146 @@
 document.addEventListener('DOMContentLoaded', () => {
     const BACKEND_URL = 'https://bingo-backend-nmxa.onrender.com';
-    const container = document.getElementById('cartones-disponibles-container');
+    const PRECIO_POR_CARTON = 1.00; // Puedes cambiar este valor
 
-    // Función para renderizar un cartón (actualizada)
+    // Elementos del DOM
+    const container = document.getElementById('cartones-disponibles-container');
+    const checkoutSection = document.getElementById('checkout-section');
+    const listaCarrito = document.getElementById('lista-carrito');
+    const totalAPagarSpan = document.getElementById('total-a-pagar');
+    const purchaseForm = document.getElementById('purchase-form');
+    const submitButton = document.getElementById('submit-purchase-button');
+
+    let carrito = new Map(); // Usaremos un Map para manejar el carrito: { id => datosDelCarton }
+
+    // --- LÓGICA DEL CARRITO ---
+
+    function actualizarCarrito() {
+        listaCarrito.innerHTML = '';
+        let total = 0;
+
+        if (carrito.size === 0) {
+            checkoutSection.classList.add('hidden');
+            submitButton.disabled = true;
+            return;
+        }
+
+        checkoutSection.classList.remove('hidden');
+
+        carrito.forEach(carton => {
+            const item = document.createElement('li');
+            item.classList.add('carrito-item');
+            item.innerHTML = `
+                <span>Cartón #${carton.id}</span>
+                <button class="quitar-del-carrito" data-id="${carton.id}">Quitar</button>
+            `;
+            listaCarrito.appendChild(item);
+            total += PRECIO_POR_CARTON;
+        });
+
+        totalAPagarSpan.textContent = total.toFixed(2);
+        validarFormulario(); // Validamos el formulario cada vez que el carrito cambia
+    }
+
+    async function agregarAlCarrito(carton) {
+        // Lógica de reserva en el backend
+        try {
+            const response = await fetch(`${BACKEND_URL}/reservar-carton/${carton.id}`, { method: 'POST' });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error);
+
+            // Si la reserva es exitosa, añadimos al carrito local
+            carrito.set(carton.id, carton);
+            document.querySelector(`.carton-venta[data-id='${carton.id}']`).classList.add('reservado');
+            actualizarCarrito();
+
+        } catch (error) {
+            alert(`Error al reservar: ${error.message}`);
+            cargarCartonesDisponibles(); // Recargamos para ver el estado real
+        }
+    }
+    
+    function quitarDelCarrito(cartonId) {
+        // ¡Aquí necesitaremos un endpoint para liberar la reserva en el futuro!
+        // Por ahora, solo lo quitamos del carrito local.
+        carrito.delete(cartonId);
+        document.querySelector(`.carton-venta[data-id='${cartonId}']`).classList.remove('reservado');
+        actualizarCarrito();
+    }
+
+    // --- LÓGICA DEL FORMULARIO ---
+
+    function validarFormulario() {
+        const esFormularioValido = purchaseForm.checkValidity();
+        const tieneItems = carrito.size > 0;
+        submitButton.disabled = !esFormularioValido || !tieneItems;
+    }
+
+    purchaseForm.addEventListener('input', validarFormulario);
+
+    purchaseForm.addEventListener('submit', (event) => {
+        event.preventDefault(); // Evitamos que la página se recargue
+        if (!purchaseForm.checkValidity() || carrito.size === 0) {
+            alert("Por favor, completa todos los campos y selecciona al menos un cartón.");
+            return;
+        }
+        // ¡Aquí irá la lógica para confirmar la compra y enviar los datos en el futuro!
+        alert("¡Formulario listo para ser enviado!");
+    });
+
+
+    // --- CARGA INICIAL DE CARTONES ---
+
     function renderizarCarton(carton) {
         const cartonDiv = document.createElement('div');
         cartonDiv.classList.add('carton-venta');
         cartonDiv.dataset.id = carton.id;
-
         const matriz = carton.numeros;
-
-        let cartonHTML = `
-            <h4>Cartón #${carton.id}</h4>
-            <table>
-                <thead><tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr></thead>
-                <tbody>`;
-        
-        for (let i = 0; i < 5; i++) { /* ... (código de la tabla sin cambios) ... */ }
+        let cartonHTML = `<h4>Cartón #${carton.id}</h4><table>...</table>`; // (El HTML de la tabla es el mismo)
+        let tablaHTML = '<table><thead><tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr></thead><tbody>';
         for (let i = 0; i < 5; i++) {
-            cartonHTML += '<tr>';
+            tablaHTML += '<tr>';
             for (let j = 0; j < 5; j++) {
-                const valor = matriz[i][j];
-                cartonHTML += `<td>${valor === 'FREE' ? '★' : valor}</td>`;
+                tablaHTML += `<td>${matriz[i][j] === 'FREE' ? '★' : matriz[i][j]}</td>`;
             }
-            cartonHTML += '</tr>';
+            tablaHTML += '</tr>';
         }
-        
-        cartonHTML += `</tbody></table>`;
-        cartonDiv.innerHTML = cartonHTML;
+        tablaHTML += '</tbody></table>';
+        cartonDiv.innerHTML = `<h4>Cartón #${carton.id}</h4>${tablaHTML}`;
 
-        // --- ¡INICIO DE LA NUEVA LÓGICA DE RESERVA! ---
-        cartonDiv.addEventListener('click', async () => {
-            // Prevenimos clics dobles o clics en cartones ya reservados
-            if (cartonDiv.classList.contains('reservado')) {
-                return;
-            }
-
-            const cartonId = cartonDiv.dataset.id;
-            
-            try {
-                const response = await fetch(`${BACKEND_URL}/reservar-carton/${cartonId}`, {
-                    method: 'POST'
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    // Si el cartón ya no está disponible, el servidor nos lo dirá.
-                    throw new Error(result.error || 'No se pudo reservar el cartón.');
-                }
-                
-                // Si la reserva fue exitosa:
-                alert(result.message); // Mostramos el mensaje de éxito del backend
-                
-                // Actualizamos la apariencia del cartón
-                cartonDiv.classList.add('reservado');
-
-            } catch (error) {
-                console.error('Error al reservar:', error);
-                // Mostramos el error específico (ej: "Este cartón ya no está disponible.")
-                alert(`Error: ${error.message}`);
-                // Opcional: Recargar la lista de cartones para mostrar el estado actualizado
-                cargarCartonesDisponibles();
+        cartonDiv.addEventListener('click', () => {
+            if (carrito.has(carton.id)) {
+                quitarDelCarrito(carton.id);
+            } else {
+                agregarAlCarrito(carton);
             }
         });
-        // --- FIN DE LA NUEVA LÓGICA DE RESERVA! ---
-
         return cartonDiv;
     }
 
-    // Función para cargar los cartones (sin cambios)
     async function cargarCartonesDisponibles() {
+        // (Esta función no necesita cambios, es la misma que ya funcionaba)
         try {
             const response = await fetch(`${BACKEND_URL}/cartones-disponibles`);
             const cartones = await response.json();
             container.innerHTML = '';
-
             if (!response.ok) throw new Error(cartones.error || 'Error del servidor.');
-
             if (cartones.length === 0) {
-                container.innerHTML = '<p class="mensaje-feedback">¡No hay cartones a la venta en este momento, vuelve pronto!</p>';
+                container.innerHTML = '<p class="mensaje-feedback">¡No hay cartones a la venta en este momento!</p>';
             } else {
-                cartones.forEach(carton => {
-                    const cartonElemento = renderizarCarton(carton);
-                    container.appendChild(cartonElemento);
-                });
+                cartones.forEach(carton => container.appendChild(renderizarCarton(carton)));
             }
         } catch (error) {
-            console.error('Error al cargar los cartones:', error);
-            container.innerHTML = `<p class="mensaje-error">Error de conexión: ${error.message}. Por favor, intenta de nuevo más tarde.</p>`;
+            container.innerHTML = `<p class="mensaje-error">Error de conexión: ${error.message}.</p>`;
         }
     }
     
+    // Event listener para los botones "Quitar" del carrito (delegación de eventos)
+    listaCarrito.addEventListener('click', (event) => {
+        if (event.target.classList.contains('quitar-del-carrito')) {
+            const cartonId = parseInt(event.target.dataset.id);
+            quitarDelCarrito(cartonId);
+        }
+    });
+
     cargarCartonesDisponibles();
 });
