@@ -63,16 +63,30 @@ let indiceGanadorActual = 0;
 async function cargarEstadoDelJuego() {
     try {
         const response = await fetch(`${BACKEND_URL}/todos-los-cartones`);
-        if (!response.ok) throw new Error("No se pudo conectar con el servidor para cargar los cartones.");
         
-        const cartonesDesdeDB = await response.json();
+        // --- ¡NUEVA LÓGICA DE DEPURACIÓN! ---
+        // 1. Obtenemos la respuesta como TEXTO, no como JSON directamente.
+        const textoCrudo = await response.text();
+
+        // 2. Mostramos en la consola QUÉ nos está enviando el servidor.
+        console.log("Respuesta cruda del servidor:", textoCrudo);
+        
+        // 3. Ahora, intentamos convertir ese texto a JSON.
+        // Si hay un error, el bloque 'catch' lo capturará y nos dirá por qué.
+        const cartonesDesdeDB = JSON.parse(textoCrudo);
+        // --- FIN DE LA LÓGICA DE DEPURACIÓN ---
+
+        if (!response.ok) {
+            throw new Error("No se pudo conectar con el servidor para cargar los cartones.");
+        }
         
         cartonesEnJuego = [];
         zonaDeCartones.innerHTML = '';
 
         if (cartonesDesdeDB.length > 0) {
             cartonesDesdeDB.forEach(carton => {
-                const matrizNumeros = JSON.parse(carton.numeros);
+                // La BD puede devolver 'numeros' como un string, así que nos aseguramos de parsearlo
+                const matrizNumeros = typeof carton.numeros === 'string' ? JSON.parse(carton.numeros) : carton.numeros;
                 reconstruirCartonDesdeDatos(carton.id, matrizNumeros, carton.esta_activo, carton.status_venta);
             });
         }
@@ -89,9 +103,11 @@ async function cargarEstadoDelJuego() {
             }
         }
         actualizarTodosDisplays();
+
     } catch (error) {
-        console.error("Error al cargar estado:", error);
-        alert(error.message);
+        console.error("Error al cargar el estado del juego:", error);
+        // Mostramos el error en la alerta para verlo fácilmente.
+        alert("Error al procesar los datos del servidor: " + error.message);
     }
 }
 
