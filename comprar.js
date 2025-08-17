@@ -77,16 +77,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     purchaseForm.addEventListener('input', validarFormulario);
 
-    purchaseForm.addEventListener('submit', (event) => {
-        event.preventDefault(); // Evitamos que la página se recargue
-        if (!purchaseForm.checkValidity() || carrito.size === 0) {
-            alert("Por favor, completa todos los campos y selecciona al menos un cartón.");
-            return;
-        }
-        // ¡Aquí irá la lógica para confirmar la compra y enviar los datos en el futuro!
-        alert("¡Formulario listo para ser enviado!");
-    });
+    purchaseForm.addEventListener('submit', async (event) => {
+    event.preventDefault(); // Evitamos que la página se recargue
+    if (!purchaseForm.checkValidity() || carrito.size === 0) {
+        alert("Por favor, completa todos los campos y selecciona al menos un cartón.");
+        return;
+    }
+    
+    submitButton.disabled = true;
+    submitButton.textContent = 'Procesando...';
 
+    // --- ¡NUEVA LÓGICA DE ENVÍO! ---
+    // 1. Creamos un objeto FormData para empaquetar los datos y el archivo.
+    const formData = new FormData();
+    formData.append('nombre', document.getElementById('nombre').value);
+    formData.append('whatsapp', document.getElementById('whatsapp').value);
+    formData.append('transaccion', document.getElementById('transaccion').value);
+    formData.append('comprobante', document.getElementById('comprobante').files[0]);
+    
+    // 2. Convertimos los IDs de los cartones del carrito a un string JSON y lo añadimos.
+    const cartonesIds = Array.from(carrito.keys());
+    formData.append('cartonesIds', JSON.stringify(cartonesIds));
+
+    try {
+        // 3. Enviamos el FormData al endpoint correcto.
+        const response = await fetch(`${BACKEND_URL}/confirmar-compra`, {
+            method: 'POST',
+            body: formData // Al enviar FormData, el navegador establece las cabeceras ('Content-Type') automáticamente.
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'No se pudo confirmar la compra.');
+        }
+        
+        // 4. Si la compra es exitosa, redirigimos a la página de gracias.
+        window.location.href = '/gracias.html';
+
+    } catch (error) {
+        console.error('Error al confirmar la compra:', error);
+        alert(`Error: ${error.message}`);
+        submitButton.disabled = false;
+        submitButton.textContent = 'Confirmar Compra';
+    }
+});
 
     // --- CARGA INICIAL DE CARTONES ---
 
