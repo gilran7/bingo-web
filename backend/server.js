@@ -110,7 +110,6 @@ app.post('/liberar-reserva/:id', express.json(), async (req, res) => {
     }
 });
 
-// La ruta de confirmar compra ya usa el middleware de multer, que maneja el cuerpo del formulario.
 app.post('/confirmar-compra', upload.single('comprobante'), async (req, res) => {
     const { nombre, whatsapp, transaccion, cartonesIds } = req.body;
     const comprobante = req.file;
@@ -124,12 +123,28 @@ app.post('/confirmar-compra', upload.single('comprobante'), async (req, res) => 
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
+        
+        // 1. Actualizamos la tabla 'cartones' (esto no cambia)
         const placeholders = idsArray.map((_, i) => `$${i + 1}`).join(',');
-        const updateQuery = `UPDATE cartones SET status_venta = 'vendido', esta_activo = true WHERE id IN (${placeholders})`;
-        await client.query(updateQuery, idsArray);
+        const updateCartonesQuery = `UPDATE cartones SET status_venta = 'vendido', esta_activo = true WHERE id IN (${placeholders})`;
+        await client.query(updateCartonesQuery, idsArray);
+
+        // --- ¡NUEVA LÓGICA! ---
+        // 2. Insertamos un nuevo registro en la tabla 'ventas'
+        const insertVentaQuery = `
+            INSERT INTO ventas (nombre_comprador, whatsapp, info_transaccion, cartones_comprados)
+            VALUES ($1, $2, $3, $4)
+        `;
+        // Guardamos los IDs de los cartones como un string JSON en la nueva tabla
+        const ventaValues = [nombre, whatsapp, transaccion, JSON.stringify(idsArray)];
+        await client.query(insertVentaQuery, ventaValues);
+        // --- FIN DE LA NUEVA LÓGICA ---
+
         await client.query('COMMIT');
+        
         console.log('Venta registrada:', { nombre, whatsapp, transaccion, cartones: idsArray.join(', ') });
         res.status(200).json({ message: '¡Compra confirmada con éxito! Gracias por participar.' });
+
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Error al confirmar la compra:', error);
