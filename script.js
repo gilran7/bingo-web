@@ -229,28 +229,49 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- EVENT LISTENERS ---
     
     botonGuardarCartones.addEventListener('click', async () => {
-        if (zonaDeCartones.childElementCount === 0) {
-            return alert("No hay cartones generados para guardar.");
-        }
-        const cartonesParaGuardar = cartonesEnJuego.map(c => ({ id: c.id, numbers: c.matriz }));
-        botonGuardarCartones.disabled = true;
-        botonGuardarCartones.textContent = 'Guardando...';
-        try {
-            const response = await fetch(`${BACKEND_URL}/guardar-lote-cartones`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(cartonesParaGuardar)
+    // --- ¡NUEVA LÓGICA DE GUARDADO A PRUEBA DE FALLOS! ---
+    
+    // 1. Leemos todos los cartones que están FÍSICAMENTE en la página.
+    const todosLosCartonesEnPagina = document.querySelectorAll('#zona-de-cartones .carton-individual');
+
+    if (todosLosCartonesEnPagina.length === 0) {
+        return alert("No hay cartones generados para guardar.");
+    }
+
+    // 2. Reconstruimos el array 'cartonesEnJuego' desde cero a partir de lo que vemos en la página.
+    // Esto asegura que siempre tengamos los datos correctos.
+    const cartonesParaGuardar = [];
+    todosLosCartonesEnPagina.forEach(cartonDiv => {
+        const id = parseInt(cartonDiv.id.split('-')[1]);
+        // Buscamos el objeto original para obtener su matriz de números
+        const cartonOriginal = cartonesEnJuego.find(c => c.id === id);
+        if (cartonOriginal) {
+            cartonesParaGuardar.push({
+                id: cartonOriginal.id,
+                numbers: cartonOriginal.matriz
             });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.error || "Error del servidor");
-            alert(result.message);
-            window.location.reload();
-        } catch (error) {
-            alert(`Error al guardar: ${error.message}`);
-            botonGuardarCartones.disabled = false;
-            botonGuardarCartones.textContent = 'Guardar Cartones en Almacén';
         }
     });
+
+    // 3. El resto de la lógica de envío no cambia.
+    botonGuardarCartones.disabled = true;
+    botonGuardarCartones.textContent = 'Guardando...';
+    try {
+        const response = await fetch(`${BACKEND_URL}/guardar-lote-cartones`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cartonesParaGuardar)
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Error del servidor");
+        alert(result.message);
+        window.location.reload();
+    } catch (error) {
+        alert(`Error al guardar: ${error.message}`);
+        botonGuardarCartones.disabled = false;
+        botonGuardarCartones.textContent = 'Guardar Cartones en Almacén';
+    }
+});
 
     botonBorrarCartones.addEventListener('click', async () => {
         if (confirm('¿BORRAR TODOS LOS CARTONES DE LA VENTA ACTUAL? Esta acción es permanente.')) {
