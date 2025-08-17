@@ -185,6 +185,6 @@ app.post('/liberar-reservas-expiradas', express.json(), async (req, res) => {
 
 // Iniciar el Servidor
 app.listen(PORT, () => {
-  console.log(`Servidor iniciado y escuchando en el puerto ${PORT}`);
+  console.log(`Servidor v2.1 iniciado y escuchando en el puerto ${PORT}`);
   console.log(`CORS configurado para origen: ${corsOptions.origin}`);
 });
