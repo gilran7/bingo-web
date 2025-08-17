@@ -183,6 +183,26 @@ app.post('/liberar-reservas-expiradas', express.json(), async (req, res) => {
     }
 });
 
+// Ruta para que el admin borre TODOS los cartones
+app.delete('/todos-los-cartones', async (req, res) => {
+    // En el futuro, aquí iría una validación de seguridad para el admin
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        await client.query('DELETE FROM cartones');
+        // Opcional: También podríamos borrar la tabla de ventas si queremos un reinicio total.
+        // await client.query('DELETE FROM ventas');
+        await client.query('COMMIT');
+        res.status(200).json({ message: 'Todos los cartones han sido borrados exitosamente.' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error al borrar todos los cartones:', error);
+        res.status(500).json({ error: 'Error interno al intentar borrar los cartones.' });
+    } finally {
+        client.release();
+    }
+});
+
 // Iniciar el Servidor
 app.listen(PORT, () => {
   console.log(`Servidor v2.1 iniciado y escuchando en el puerto ${PORT}`);

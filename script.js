@@ -232,9 +232,27 @@ botonNuevaRonda.addEventListener('click', () => {
 });
 botonRetroceder.addEventListener('click', retrocederNumero);
 botonBorrarCartones.addEventListener('click', async () => {
-    if (confirm('¿BORRAR TODOS LOS CARTONES DE LA VENTA ACTUAL? Esta acción es permanente.')) {
-        // Aquí iría la llamada al endpoint DELETE /todos-los-cartones
-        alert("Funcionalidad de borrado en BD no implementada aún.");
+    if (confirm('¿BORRAR TODOS LOS CARTONES DE LA VENTA ACTUAL? Esta acción es permanente y vaciará la base de datos.')) {
+        try {
+            // --- ¡NUEVA LÓGICA DE BORRADO! ---
+            const response = await fetch(`${BACKEND_URL}/todos-los-cartones`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'No se pudieron borrar los cartones.');
+            }
+
+            alert(result.message);
+            // Recargamos la página para ver el resultado (el panel vacío)
+            window.location.reload();
+
+        } catch (error) {
+            console.error("Error al borrar los cartones:", error);
+            alert(`Error: ${error.message}`);
+        }
     }
 });
 botonVerificarDuplicados.addEventListener('click', verificarDuplicados);
