@@ -4,13 +4,11 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const multer = require('multer');
 
-// 1. Verificación de Variables de Entorno
 if (!process.env.DATABASE_URL) {
   console.error("ERROR: DATABASE_URL no está definida.");
   process.exit(1);
 }
 
-// 2. Configuración
 const app = express();
 const PORT = process.env.PORT || 3000;
 const pool = new Pool({
@@ -23,19 +21,15 @@ const corsOptions = {
 };
 const upload = multer({ storage: multer.memoryStorage() });
 
-// 3. Middleware
+// Middleware global solo para CORS
 app.use(cors(corsOptions));
-// NOTA: Es importante que el middleware 'express.json()' se use globalmente
-// para las rutas que lo necesiten. Multer se aplicará específicamente en su ruta.
-app.use(express.json()); 
 
-// 4. RUTAS DE LA API
+// RUTAS DE LA API
 
 app.get('/', (req, res) => {
   res.send('Servidor del Bingo funcionando.');
 });
 
-// Ruta para obtener cartones disponibles Y reservados para mostrarlos correctamente
 app.get('/cartones-disponibles', async (req, res) => {
   try {
     const result = await pool.query("SELECT id, numeros, status_venta FROM cartones ORDER BY id ASC");
@@ -46,7 +40,8 @@ app.get('/cartones-disponibles', async (req, res) => {
   }
 });
 
-app.post('/guardar-lote-cartones', async (req, res) => {
+// --- CORRECCIÓN CLAVE: Aplicamos express.json() solo donde se necesita ---
+app.post('/guardar-lote-cartones', express.json(), async (req, res) => {
     const cartones = req.body;
     const client = await pool.connect();
     try {
@@ -68,25 +63,22 @@ app.post('/guardar-lote-cartones', async (req, res) => {
     }
 });
 
-app.post('/reservar-carton/:id', async (req, res) => {
+app.post('/reservar-carton/:id', express.json(), async (req, res) => {
     const { id } = req.params;
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
         const checkQuery = "SELECT status_venta FROM cartones WHERE id = $1 FOR UPDATE";
         const checkResult = await client.query(checkQuery, [id]);
-
         if (checkResult.rows.length === 0 || checkResult.rows[0].status_venta !== 'disponible') {
             await client.query('ROLLBACK');
             return res.status(409).json({ error: 'Este cartón ya no está disponible.' });
         }
-        
         const expiracion = new Date();
         expiracion.setHours(expiracion.getHours() + 23);
         const updateQuery = "UPDATE cartones SET status_venta = 'reservado', reservado_hasta = $1 WHERE id = $2";
         await client.query(updateQuery, [expiracion, id]);
         await client.query('COMMIT');
-        
         res.status(200).json({ 
             message: `¡Cartón #${id} reservado con éxito!`,
             reservadoHasta: expiracion.toISOString() 
@@ -100,12 +92,40 @@ app.post('/reservar-carton/:id', async (req, res) => {
     }
 });
 
-// ... (El resto de las rutas como /confirmar-compra y /liberar-reservas-expiradas no cambian)...
-app.post('/confirmar-compra', upload.single('comprobante'), async (req, res) => { /*código sin cambios*/ });
-app.post('/liberar-reservas-expiradas', async (req, res) => { /*código sin cambios*/ });
+// La ruta de confirmar compra ya usa el middleware de multer, que maneja el cuerpo del formulario.
+app.post('/confirmar-compra', upload.single('comprobante'), async (req, res) => {
+    const { nombre, whatsapp, transaccion, cartonesIds } = req.body;
+    const comprobante = req.file;
+    if (!nombre || !whatsapp || !transaccion || !cartonesIds || !comprobante) {
+        return res.status(400).json({ error: 'Faltan datos en el formulario.' });
+    }
+    const idsArray = JSON.parse(cartonesIds);
+    if (!Array.isArray(idsArray) || idsArray.length === 0) {
+        return res.status(400).json({ error: 'No se seleccionaron cartones.' });
+    }
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const placeholders = idsArray.map((_, i) => `$${i + 1}`).join(',');
+        const updateQuery = `UPDATE cartones SET status_venta = 'vendido', esta_activo = true WHERE id IN (${placeholders})`;
+        await client.query(updateQuery, idsArray);
+        await client.query('COMMIT');
+        console.log('Venta registrada:', { nombre, whatsapp, transaccion, cartones: idsArray.join(', ') });
+        res.status(200).json({ message: '¡Compra confirmada con éxito! Gracias por participar.' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error al confirmar la compra:', error);
+        res.status(500).json({ error: 'Error interno al procesar la compra.' });
+    } finally {
+        client.release();
+    }
+});
 
+app.post('/liberar-reservas-expiradas', express.json(), async (req, res) => {
+    // ... (código sin cambios)
+});
 
-// 5. Iniciar el Servidor
+// Iniciar el Servidor
 app.listen(PORT, () => {
   console.log(`Servidor iniciado y escuchando en el puerto ${PORT}`);
   console.log(`CORS configurado para origen: ${corsOptions.origin}`);
