@@ -21,8 +21,9 @@ const corsOptions = {
 };
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Middleware global solo para CORS
+// Middleware
 app.use(cors(corsOptions));
+// Nota: express.json() se aplicará individualmente en cada ruta que lo necesite.
 
 // RUTAS DE LA API
 
@@ -30,6 +31,7 @@ app.get('/', (req, res) => {
   res.send('Servidor del Bingo funcionando.');
 });
 
+// Ruta para que los clientes obtengan los cartones disponibles/reservados
 app.get('/cartones-disponibles', async (req, res) => {
   try {
     const result = await pool.query("SELECT id, numeros, status_venta FROM cartones ORDER BY id ASC");
@@ -40,7 +42,19 @@ app.get('/cartones-disponibles', async (req, res) => {
   }
 });
 
-// --- CORRECCIÓN CLAVE: Aplicamos express.json() solo donde se necesita ---
+// --- ¡NUEVA RUTA PARA EL PANEL DE ADMINISTRACIÓN! ---
+// Ruta segura para que el admin obtenga el estado de TODOS los cartones
+app.get('/todos-los-cartones', async (req, res) => {
+    // En una app real, aquí verificaríamos un token de administrador.
+    try {
+        const result = await pool.query("SELECT * FROM cartones ORDER BY id ASC");
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error al obtener todos los cartones:', error);
+        res.status(500).json({ error: 'Error interno al obtener todos los cartones.' });
+    }
+});
+
 app.post('/guardar-lote-cartones', express.json(), async (req, res) => {
     const cartones = req.body;
     const client = await pool.connect();
@@ -92,11 +106,9 @@ app.post('/reservar-carton/:id', express.json(), async (req, res) => {
     }
 });
 
-// Ruta para que un usuario libere una reserva desde el carrito
 app.post('/liberar-reserva/:id', express.json(), async (req, res) => {
     const { id } = req.params;
     try {
-        // Cambiamos el estado de vuelta a 'disponible' y quitamos la fecha de expiración.
         const updateQuery = `
             UPDATE cartones 
             SET status_venta = 'disponible', reservado_hasta = NULL 
@@ -123,22 +135,16 @@ app.post('/confirmar-compra', upload.single('comprobante'), async (req, res) => 
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        
-        // 1. Actualizamos la tabla 'cartones' (esto no cambia)
         const placeholders = idsArray.map((_, i) => `$${i + 1}`).join(',');
         const updateCartonesQuery = `UPDATE cartones SET status_venta = 'vendido', esta_activo = true WHERE id IN (${placeholders})`;
         await client.query(updateCartonesQuery, idsArray);
 
-        // --- ¡NUEVA LÓGICA! ---
-        // 2. Insertamos un nuevo registro en la tabla 'ventas'
         const insertVentaQuery = `
             INSERT INTO ventas (nombre_comprador, whatsapp, info_transaccion, cartones_comprados)
             VALUES ($1, $2, $3, $4)
         `;
-        // Guardamos los IDs de los cartones como un string JSON en la nueva tabla
         const ventaValues = [nombre, whatsapp, transaccion, JSON.stringify(idsArray)];
         await client.query(insertVentaQuery, ventaValues);
-        // --- FIN DE LA NUEVA LÓGICA ---
 
         await client.query('COMMIT');
         
@@ -155,7 +161,26 @@ app.post('/confirmar-compra', upload.single('comprobante'), async (req, res) => 
 });
 
 app.post('/liberar-reservas-expiradas', express.json(), async (req, res) => {
-    // ... (código sin cambios)
+    const cronSecret = process.env.CRON_SECRET;
+    const requestSecret = req.headers['authorization'];
+    if (!cronSecret || `Bearer ${cronSecret}` !== requestSecret) {
+        return res.status(401).json({ error: 'Acceso no autorizado.' });
+    }
+    try {
+        const updateQuery = `
+            UPDATE cartones 
+            SET status_venta = 'disponible', reservado_hasta = NULL 
+            WHERE status_venta = 'reservado' AND reservado_hasta < NOW()
+            RETURNING id;`;
+        const result = await pool.query(updateQuery);
+        const numLiberados = result.rowCount;
+        const mensaje = `Tarea de limpieza ejecutada. Se liberaron ${numLiberados} cartones expirados.`;
+        console.log(mensaje);
+        res.status(200).json({ message: mensaje, liberados: numLiberados });
+    } catch (error) {
+        console.error('Error en la tarea de liberación:', error);
+        res.status(500).json({ error: 'Error interno en la tarea de limpieza.' });
+    }
 });
 
 // Iniciar el Servidor

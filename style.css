@@ -139,3 +139,14 @@ button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
     border-color: #ffc107;
     box-shadow: 0 0 10px rgba(255, 193, 7, 0.6);
 }
+
+/* --- Nuevos Estilos para el Estado de los Cartones en el Panel --- */
+.carton-vendido-admin {
+    border-color: #2ecc71; /* Borde verde para vendidos */
+    background-color: #e8f5e9;
+}
+
+.carton-reservado-admin {
+    border-color: #f1c40f; /* Borde amarillo para reservados */
+    background-color: #fff9c4;
+}
