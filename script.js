@@ -1,6 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- INICIALIZACIÓN ---
-    // Todo el código se ejecuta aquí dentro para garantizar que la página está lista.
+    // --- BARRERA DE SEGURIDAD ---
+    /*
+    const contraseñaCorrecta = 'BingoGil2024*';
+    let accesoPermitido = false;
+    // ... (código de la barrera de seguridad)
+    */
+    // --- FIN BARRERA DE SEGURIDAD ---
 
     const BACKEND_URL = 'https://bingo-backend-nmxa.onrender.com';
 
@@ -35,26 +40,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let indiceGanadorActual = 0;
 
     // --- Funciones de Gestión con Backend ---
-
     async function cargarEstadoDelJuego() {
         try {
             const response = await fetch(`${BACKEND_URL}/todos-los-cartones`);
             if (!response.ok) throw new Error("No se pudo conectar con el servidor.");
-            
             const cartonesDesdeDB = await response.json();
-            
             cartonesEnJuego = [];
             zonaDeCartones.innerHTML = '';
-
-            if (cartonesDesdeDB.length > 0) {
-                cartonesDesdeDB.forEach(carton => {
-                    const matrizNumeros = typeof carton.numeros === 'string' ? JSON.parse(carton.numeros) : carton.numeros;
-                    reconstruirCartonDesdeDatos(carton.id, matrizNumeros, carton.esta_activo, carton.status_venta);
-                });
-            } else {
-                crearYAnadirCartonLocalmente();
-            }
-            
+            cartonesDesdeDB.forEach(carton => {
+                const matrizNumeros = typeof carton.numeros === 'string' ? JSON.parse(carton.numeros) : carton.numeros;
+                reconstruirCartonDesdeDatos(carton.id, matrizNumeros, carton.esta_activo, carton.status_venta);
+            });
             const estadoGuardado = localStorage.getItem('bingoGameState');
             if (estadoGuardado) {
                 const estado = JSON.parse(estadoGuardado);
@@ -84,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Funciones de Creación y Visualización de Cartones ---
-
     function crearYAnadirCartonLocalmente() {
         const matriz = generarMatrizDeCarton();
         const maxId = cartonesEnJuego.reduce((max, c) => Math.max(c.id, max), 0);
@@ -105,9 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (statusVenta === 'vendido') cartonDiv.classList.add('carton-vendido-admin');
         if (statusVenta === 'reservado') cartonDiv.classList.add('carton-reservado-admin');
         cartonDiv.id = `carton-${id}`;
-        
-        let cartonHTML = `<h4>Cartón #${id}</h4>
-            <table><thead><tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr></thead><tbody>`;
+        let cartonHTML = `<h4>Cartón #${id}</h4><table><thead><tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr></thead><tbody>`;
         for (let i = 0; i < 5; i++) {
             cartonHTML += '<tr>';
             for (let j = 0; j < 5; j++) {
@@ -116,14 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             cartonHTML += '</tr>';
         }
-        cartonHTML += `</tbody></table>
-            <div class="controles-del-carton">
-                <div class="control-activar-carton">
-                    <label for="activar-carton-${id}">Juega:</label>
-                    <input type="checkbox" id="activar-carton-${id}" class="activar-carton-checkbox" ${isActive ? 'checked' : ''}>
-                </div>
-                <button class="marcar-vendido-btn" data-id="${id}">Vendido</button>
-            </div>`;
+        cartonHTML += `</tbody></table><div class="controles-del-carton"><div class="control-activar-carton"><label for="activar-carton-${id}">Juega:</label><input type="checkbox" id="activar-carton-${id}" class="activar-carton-checkbox" ${isActive ? 'checked' : ''}></div><button class="marcar-vendido-btn" data-id="${id}">Vendido</button></div>`;
         cartonDiv.innerHTML = cartonHTML;
         return cartonDiv;
     }
@@ -159,13 +145,13 @@ document.addEventListener('DOMContentLoaded', () => {
             contenedorNumerosMaestros.appendChild(columnaDiv);
         });
     }
-    
+
     function iniciarNuevaRonda() {
         numerosCantados = [];
         juegoTerminado = false;
         ganadoresInfo = [];
         indiceGanadorActual = 0;
-        localStorage.removeItem('bingoGameState'); // Limpiamos el estado del juego
+        localStorage.removeItem('bingoGameState');
         actualizarTodosDisplays();
         document.querySelectorAll('.carton-ganador').forEach(c => c.classList.remove('carton-ganador'));
         botonCantar.disabled = (modoJuego === 'manual');
@@ -243,8 +229,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- EVENT LISTENERS ---
     
     botonGuardarCartones.addEventListener('click', async () => {
+        if (zonaDeCartones.childElementCount === 0) {
+            return alert("No hay cartones generados para guardar.");
+        }
         const cartonesParaGuardar = cartonesEnJuego.map(c => ({ id: c.id, numbers: c.matriz }));
-        if (cartonesParaGuardar.length === 0) return alert("No hay cartones para guardar.");
         botonGuardarCartones.disabled = true;
         botonGuardarCartones.textContent = 'Guardando...';
         try {
@@ -259,7 +247,6 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.reload();
         } catch (error) {
             alert(`Error al guardar: ${error.message}`);
-        } finally {
             botonGuardarCartones.disabled = false;
             botonGuardarCartones.textContent = 'Guardar Cartones en Almacén';
         }
@@ -279,16 +266,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-
-    botonCantar.addEventListener('click', cantarNumeroAutomatico);
-    botonAnadirCarton.addEventListener('click', crearYAnadirCartonLocalmente);
-    botonNuevaRonda.addEventListener('click', iniciarNuevaRonda);
-    botonRetroceder.addEventListener('click', retrocederNumero);
-    botonVerificarDuplicados.addEventListener('click', verificarDuplicados);
     
     botonMostrarGanadores.addEventListener('click', () => {
-        if(!ganadoresInfo || ganadoresInfo.length === 0) return;
-        const ganador = ganadoresInfo[indiceGanadorActual % ganadoresInfo.length];
+        if (!ganadoresInfo || ganadoresInfo.length === 0) return;
+        if (indiceGanadorActual >= ganadoresInfo.length) {
+            alert('Se han mostrado todos los cartones ganadores.');
+            indiceGanadorActual = 0; // Reiniciamos para poder volver a verlos, pero no en bucle.
+            return; // Detenemos la ejecución aquí para no mostrar uno de nuevo.
+        }
+        const ganador = ganadoresInfo[indiceGanadorActual];
         const cartonClonado = construirElementoCarton(ganador.id, ganador.matriz, ganador.isActive, 'vendido');
         const celdasClonadas = cartonClonado.querySelectorAll("td");
         celdasClonadas.forEach(celda => {
@@ -302,15 +288,18 @@ document.addEventListener('DOMContentLoaded', () => {
         modalBackdrop.classList.remove("hidden");
         indiceGanadorActual++;
     });
-
+    
+    botonCantar.addEventListener('click', cantarNumeroAutomatico);
+    botonAnadirCarton.addEventListener('click', crearYAnadirCartonLocalmente);
+    botonNuevaRonda.addEventListener('click', iniciarNuevaRonda);
+    botonRetroceder.addEventListener('click', retrocederNumero);
+    botonVerificarDuplicados.addEventListener('click', verificarDuplicados);
     modalCloseButton.addEventListener('click', () => modalBackdrop.classList.add('hidden'));
     modalBackdrop.addEventListener('click', (event) => { if (event.target === modalBackdrop) modalBackdrop.classList.add('hidden'); });
-    
     selectPatron.addEventListener('change', () => {
         imagenPatron.src = `imagenes/patron_${selectPatron.value}.png`;
         guardarEstadoDelJuegoLocal();
     });
-    
     botonModo.addEventListener('click', () => {
         if(juegoTerminado) return;
         modoJuego = (modoJuego === 'automatico') ? 'manual' : 'automatico';
@@ -320,14 +309,12 @@ document.addEventListener('DOMContentLoaded', () => {
         contenedorNumerosMaestros.classList.toggle('modo-manual');
         guardarEstadoDelJuegoLocal();
     });
-    
     contenedorNumerosMaestros.addEventListener('click', (event) => {
         if(modoJuego !== 'manual' || juegoTerminado) return;
         if(event.target.classList.contains('celda-maestra') && !event.target.classList.contains('cantado')) {
             marcarNumero(parseInt(event.target.textContent, 10));
         }
     });
-    
     zonaDeCartones.addEventListener('change', (event) => {
         if (event.target.classList.contains('activar-carton-checkbox')) {
             const checkbox = event.target;
@@ -336,7 +323,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (carton) {
                 carton.isActive = checkbox.checked;
                 carton.elemento.classList.toggle('carton-inactivo', !checkbox.checked);
-                // Esto es solo visual. Se necesita backend para persistir el cambio.
                 console.log(`Estado visual del cartón #${idCarton} cambiado a: ${carton.isActive}.`);
             }
         }
@@ -345,5 +331,4 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- INICIO DE LA APLICACIÓN ---
     crearTablaMaestra();
     cargarEstadoDelJuego();
-    
-}); // Fin del 'DOMContentLoaded'
+});
