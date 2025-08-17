@@ -203,21 +203,101 @@ function crearTablaMaestra() {
 function marcarNumero(numero){if(numerosCantados.includes(numero)||juegoTerminado)return;numerosCantados.push(numero);actualizarTodosDisplays();guardarEstadoDelJuegoLocal();verificarGanadores()}
 function cantarNumeroAutomatico(){if(numerosCantados.length>=75)return;let nuevoNumero;do{nuevoNumero=Math.floor(Math.random()*75)+1}while(numerosCantados.includes(nuevoNumero));marcarNumero(nuevoNumero)}
 function retrocederNumero(){if(numerosCantados.length===0||juegoTerminado)return;numerosCantados.pop();actualizarTodosDisplays();guardarEstadoDelJuegoLocal()}
-function actualizarTodosDisplays(){document.querySelectorAll(".celda-maestra.cantado").forEach(c=>c.classList.remove("cantado"));document.querySelectorAll(".carton-individual td.marcado").forEach(c=>{if(c.textContent!=="★")c.classList.remove("marcado")});listaHistorial.innerHTML="";numerosCantados.forEach(num=>{document.getElementById(`maestra-${num}`)?.classList.add("cantado");cartonesEnJuego.forEach(carton=>{for(let i=0;i<5;i++)for(let j=0;j<5;j++)if(carton.matriz[i][j]===num)carton.elemento.querySelector("tbody").rows[i].cells[j].classList.add("marcado")})});const ultimos5=numerosCantados.slice(-5).reverse();ultimos5.forEach(num=>{const itemHistorial=document.createElement("div");itemHistorial.className="numero-historial";itemHistorial.textContent=num;listaHistorial.appendChild(itemHistorial)});const ultimoNumero=numerosCantados.length>0?numerosCantados[numerosCantados.length-1]:"--";numeroCantadoDisplay.textContent=ultimoNumero;botonRetroceder.disabled=numerosCantados.length===0||juegoTerminado}
+function actualizarTodosDisplays(){
+    document.querySelectorAll(".celda-maestra.cantado").forEach(c=>c.classList.remove("cantado"));
+    document.querySelectorAll(".carton-individual td.marcado").forEach(c=>c.classList.remove("marcado"));
+    
+    // --- PEQUEÑO AJUSTE ---
+    // Marcamos el centro ('FREE') de todos los cartones visualmente desde el principio.
+    document.querySelectorAll(".carton-individual td").forEach(td => {
+        if (td.textContent === '★') {
+            td.classList.add('marcado');
+        }
+    });
+    // --- FIN DEL AJUSTE ---
 
-function verificarGanadores(){
-    if(juegoTerminado) return;
-    const patron=selectPatron.value;
-    ganadoresInfo=[];
-    const cartonesActivos=cartonesEnJuego.filter(carton=>carton.isActive);
-    cartonesActivos.forEach(carton=>{const celdas=Array.from(carton.elemento.querySelector("tbody").rows).map(row=>Array.from(row.cells));let esGanador=false;const isMarked=(r,c)=>celdas[r][c].classList.contains("marcado")||celdas[r][c].textContent==='★';
-    switch(patron){
-        case"lnormal":esGanador=isMarked(0,0)&&isMarked(1,0)&&isMarked(2,0)&&isMarked(3,0)&&isMarked(4,0)&&isMarked(4,1)&&isMarked(4,2)&&isMarked(4,3)&&isMarked(4,4);break;
-        case"cartonlleno":esGanador=celdas.flat().every(c=>c.classList.contains("marcado")||c.textContent==='★');break;
-        // ... (resto de tus 'case' para los patrones van aquí)
+    listaHistorial.innerHTML="";
+    numerosCantados.forEach(num=>{
+        document.getElementById(`maestra-${num}`)?.classList.add("cantado");
+        cartonesEnJuego.forEach(carton=>{
+            for(let i=0;i<5;i++) {
+                for(let j=0;j<5;j++) {
+                    if(carton.matriz[i][j]===num) {
+                        carton.elemento.querySelector("tbody").rows[i].cells[j].classList.add("marcado");
+                    }
+                }
+            }
+        });
+    });
+
+    const ultimos5=numerosCantados.slice(-5).reverse();
+    ultimos5.forEach(num=>{
+        const itemHistorial=document.createElement("div");
+        itemHistorial.className="numero-historial";
+        itemHistorial.textContent=num;
+        listaHistorial.appendChild(itemHistorial);
+    });
+    const ultimoNumero=numerosCantados.length>0?numerosCantados[numerosCantados.length-1]:"--";
+    numeroCantadoDisplay.textContent=ultimoNumero;
+    botonRetroceder.disabled=numerosCantados.length===0||juegoTerminado;
+}
+
+function verificarGanadores() {
+    if (juegoTerminado) return;
+
+    const patron = selectPatron.value;
+    ganadoresInfo = [];
+    const cartonesActivos = cartonesEnJuego.filter(carton => carton.isActive);
+
+    cartonesActivos.forEach(carton => {
+        const celdas = Array.from(carton.elemento.querySelectorAll("td"));
+
+        // --- ¡NUEVA LÓGICA DE VERIFICACIÓN! ---
+        // Creamos una función simple para saber si una celda está marcada.
+        // Una celda está marcada si tiene la clase 'marcado' O si es el centro ('FREE').
+        const estaMarcada = (index) => celdas[index].classList.contains('marcado');
+
+        let esGanador = false;
+
+        // Definimos los índices de las celdas para cada patrón.
+        // 0-4 (fila 1), 5-9 (fila 2), etc.
+        const patrones = {
+            '4esquinas': [0, 4, 20, 24],
+            'lnormal': [0, 5, 10, 15, 20, 21, 22, 23, 24],
+            'cartonlleno': Array.from({ length: 25 }, (_, i) => i) // Todos los índices de 0 a 24
+            // Puedes añadir más patrones aquí siguiendo el mismo formato.
+            // Ejemplo Fila 1: 'fila1': [0, 1, 2, 3, 4]
+            // Ejemplo Columna 1: 'columna1': [0, 5, 10, 15, 20]
+            // Ejemplo Diagonal Principal: 'diag1': [0, 6, 12, 18, 24]
+        };
+
+        const indicesDelPatron = patrones[patron];
+
+        if (indicesDelPatron) {
+            // Verificamos si TODAS las celdas requeridas por el patrón están marcadas.
+            esGanador = indicesDelPatron.every(index => estaMarcada(index));
+        }
+        // --- FIN DE LA NUEVA LÓGICA ---
+
+        if (esGanador) {
+            ganadoresInfo.push(carton);
+        }
+    });
+
+    if (ganadoresInfo.length > 0) {
+        juegoTerminado = true;
+        const idsGanadores = ganadoresInfo.map(c => c.id);
+        idsGanadores.forEach(id => {
+            document.getElementById(`carton-${id}`)?.classList.add("carton-ganador");
+        });
+        botonMostrarGanadores.disabled = false;
+        deshabilitarControlesFinDeJuego();
+        
+        // Usamos setTimeout para que la última celda se pinte antes de mostrar la alerta.
+        setTimeout(() => {
+            alert(`¡BINGO! Ganador(es) con el patrón "${patron.toUpperCase()}": Cartón #${idsGanadores.join(", #")}`);
+        }, 100);
     }
-    if(esGanador)ganadoresInfo.push(carton)});
-    if(ganadoresInfo.length>0){juegoTerminado=true;const idsGanadores=ganadoresInfo.map(c=>c.id);idsGanadores.forEach(id=>{document.getElementById(`carton-${id}`)?.classList.add("carton-ganador")});botonMostrarGanadores.disabled=false;alert(`¡BINGO! Ganador(es): Cartón #${idsGanadores.join(", #")}`)}
 }
 
 function deshabilitarControlesFinDeJuego(){juegoTerminado=true;botonCantar.disabled=true;botonAnadirCarton.disabled=true;botonModo.disabled=true;botonRetroceder.disabled=true;contenedorNumerosMaestros.classList.remove("modo-manual")}
