@@ -92,6 +92,24 @@ app.post('/reservar-carton/:id', express.json(), async (req, res) => {
     }
 });
 
+// Ruta para que un usuario libere una reserva desde el carrito
+app.post('/liberar-reserva/:id', express.json(), async (req, res) => {
+    const { id } = req.params;
+    try {
+        // Cambiamos el estado de vuelta a 'disponible' y quitamos la fecha de expiración.
+        const updateQuery = `
+            UPDATE cartones 
+            SET status_venta = 'disponible', reservado_hasta = NULL 
+            WHERE id = $1 AND status_venta = 'reservado'
+        `;
+        await pool.query(updateQuery, [id]);
+        res.status(200).json({ message: `Reserva para el cartón #${id} liberada.` });
+    } catch (error) {
+        console.error(`Error al liberar reserva para el cartón #${id}:`, error);
+        res.status(500).json({ error: 'Error interno al liberar la reserva.' });
+    }
+});
+
 // La ruta de confirmar compra ya usa el middleware de multer, que maneja el cuerpo del formulario.
 app.post('/confirmar-compra', upload.single('comprobante'), async (req, res) => {
     const { nombre, whatsapp, transaccion, cartonesIds } = req.body;

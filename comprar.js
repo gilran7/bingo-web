@@ -59,13 +59,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    function quitarDelCarrito(cartonId) {
-        // ¡Aquí necesitaremos un endpoint para liberar la reserva en el futuro!
-        // Por ahora, solo lo quitamos del carrito local.
+   async function quitarDelCarrito(cartonId) {
+    try {
+        // --- ¡NUEVA LÓGICA DE LIBERACIÓN! ---
+        // Le decimos al backend que libere la reserva.
+        await fetch(`${BACKEND_URL}/liberar-reserva/${cartonId}`, {
+            method: 'POST'
+        });
+
+        // Actualizamos el estado local solo si el backend tuvo éxito.
         carrito.delete(cartonId);
-        document.querySelector(`.carton-venta[data-id='${cartonId}']`).classList.remove('reservado');
+        const cartonElement = document.querySelector(`.carton-venta[data-id='${cartonId}']`);
+        if (cartonElement) {
+            cartonElement.classList.remove('reservado');
+        }
         actualizarCarrito();
-    }
+
+        } catch (error) {
+        console.error('Error al liberar la reserva:', error);
+        alert("Hubo un problema al intentar liberar la reserva. Por favor, refresca la página.");
+        }
+   }
 
     // --- LÓGICA DEL FORMULARIO ---
 
