@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const BACKEND_URL = 'https://bingo-backend-nmxa.onrender.com';
+    const BACKEND_URL = 'https://redesigned-meme-x5qv9jvqgxv53p5w9-3000.app.github.dev/';
     const PRECIO_POR_CARTON = 1.00; // Puedes cambiar este valor
 
     // Elementos del DOM

@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- BARRERA DE SEGURIDAD ---
     /* ... (tu barrera de seguridad va aquí) ... */
 
-    const BACKEND_URL = 'https://bingo-backend-nmxa.onrender.com';
+    const BACKEND_URL = 'https://redesigned-meme-x5qv9jvqgxv53p5w9-3000.app.github.dev/';
 
     // --- CONSTANTES Y ELEMENTOS DEL DOM ---
     const botonCantar = document.getElementById('boton-cantar');
