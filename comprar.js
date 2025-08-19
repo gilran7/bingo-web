@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const BACKEND_URL = 'http://144.91.121.23:3000';
+    const BACKEND_URL = 'http://api.bingomisterleon.com:3000';
     const PRECIO_POR_CARTON = 1.00; // Puedes cambiar este valor
 
     // Elementos del DOM
