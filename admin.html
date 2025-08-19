@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Bingo Automático Profesional</title>
-    <!-- Vinculamos tu hoja de estilos principal -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,27 +11,23 @@
     <hr>
 
     <div class="juego-container">
-        <!-- ============================================= -->
-        <!-- PANEL IZQUIERDO (TABLA MAESTRA Y CONTROLES)   -->
-        <!-- ============================================= -->
+        <!-- PANEL IZQUIERDO -->
         <div class="panel-izquierdo">
             <div id="tabla-maestra">
                 <div id="contenedor-columnas-letras"></div>
                 <div id="contenedor-numeros-maestros"></div>
             </div>
+            <!-- ¡ESTRUCTURA DE BOTONES CORREGIDA! -->
             <div class="controles-cartones">
                 <button id="boton-anadir-carton">Añadir Cartón</button>
                 <button id="boton-verificar-duplicados">Verificar Duplicados</button>
                 <button id="boton-borrar-cartones">Borrar Todos los Cartones</button>
-                <button id="guardar-cartones-almacen" style="background-color: #28a745; color: white; width: 100%;">
-                    Guardar Cartones en Almacén
-                </button>
+                <button id="guardar-cartones-almacen" style="background-color: #28a745; color: white;">Guardar Cartones en Almacén</button>
+                <button id="boton-resetear-venta" style="background-color: #f39c12; color: white;">Poner Todos a la Venta</button>
             </div>
         </div>
 
-        <!-- ============================================= -->
-        <!-- PANEL DERECHO (JUEGO Y CARTONES)              -->
-        <!-- ============================================= -->
+        <!-- PANEL DERECHO -->
         <div class="panel-derecho">
             <div class="seccion-superior-fija">
                 <div class="displays-superiores-container">
@@ -84,7 +79,7 @@
         </div>
     </div>
 
-    <!-- MODAL PARA MOSTRAR GANADORES (oculto por defecto) -->
+    <!-- MODAL PARA MOSTRAR GANADORES -->
     <div id="modal-ganador-backdrop" class="hidden">
         <div id="modal-ganador-content">
             <button id="modal-close-button">&times;</button>
@@ -93,73 +88,8 @@
         </div>
     </div>
 
-    <!-- Tu script principal no necesita cambios -->
+    <!-- ¡El único script que se necesita! -->
     <script src="script.js"></script>
-
-    <!-- ===================================================================== -->
-    <!-- INICIO DEL NUEVO SCRIPT DE GUARDADO -->
-    <!-- ===================================================================== -->
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const saveButton = document.getElementById('guardar-cartones-almacen');
-
-        // --- ¡CAMBIO CLAVE! Definimos la URL de nuestro nuevo servidor ---
-        const BACKEND_URL = 'https://bingo-backend-nmxa.onrender.com';
-
-        if (saveButton) {
-            saveButton.addEventListener('click', async () => {
-                if (typeof cartonesEnJuego === 'undefined' || cartonesEnJuego.length === 0) {
-                    alert("No hay cartones generados para guardar.");
-                    return;
-                }
-
-                // El formato de los datos que enviamos NO cambia.
-                const cardsData = cartonesEnJuego.map(carton => ({
-                    id: carton.id,
-                    numbers: carton.matriz
-                }));
-
-                saveButton.disabled = true;
-                saveButton.textContent = 'Guardando...';
-                
-                try {
-                    // --- ¡CAMBIO CLAVE! Apuntamos al endpoint correcto de nuestro nuevo servidor ---
-                    const response = await fetch(`${BACKEND_URL}/guardar-lote-cartones`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        // ¡Importante! El backend espera un array, no un objeto.
-                        body: JSON.stringify(cardsData),
-                    });
-
-                    const result = await response.json();
-
-                    if (!response.ok) {
-                        // Usamos el mensaje de error que nos da nuestro propio backend
-                        throw new Error(result.error || 'Error desconocido del servidor.');
-                    }
-
-                    alert('¡ÉXITO! ' + result.message);
-
-                } catch (error) {
-                    console.error('Error detallado al guardar:', error);
-                    alert(`Hubo un error al guardar los cartones.\nError: ${error.message}`);
-                } finally {
-                    saveButton.disabled = false;
-                    saveButton.textContent = 'Guardar Cartones en Almacén';
-                }
-            });
-        }
-    });
-    </script>
-    <!-- ===================================================================== -->
-    <!-- FIN DEL NUEVO SCRIPT DE GUARDADO -->
-    <!-- ===================================================================== -->
-
-   <!-- Este formulario ya no es leído por Netlify, pero no hace daño dejarlo -->
-   <form name="cartones-disponibles" netlify netlify-honepot="bot-field" hidden>
-     <input type="text" name="batchId" />
-     <textarea name="cartonesData"></textarea>
-   </form>
 
 </body>
 </html>
