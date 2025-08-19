@@ -88,14 +88,16 @@ app.post('/reservar-carton/:id', express.json(), async (req, res) => {
             await client.query('ROLLBACK');
             return res.status(409).json({ error: 'Este cartón ya no está disponible.' });
         }
-        const expiracion = new Date();
-        expiracion.setHours(expiracion.getHours() + 23);
-        const updateQuery = "UPDATE cartones SET status_venta = 'reservado', reservado_hasta = $1 WHERE id = $2";
-        await client.query(updateQuery, [expiracion, id]);
+        
+        // --- ¡CAMBIO CLAVE! ---
+        // Ya no calculamos la expiración. Simplemente actualizamos el estado.
+        const updateQuery = "UPDATE cartones SET status_venta = 'reservado', reservado_hasta = NULL WHERE id = $2";
+        await client.query(updateQuery, [id]);
+        // --- FIN DEL CAMBIO ---
+
         await client.query('COMMIT');
         res.status(200).json({ 
-            message: `¡Cartón #${id} reservado con éxito!`,
-            reservadoHasta: expiracion.toISOString() 
+            message: `¡Cartón #${id} reservado con éxito!`
         });
     } catch (error) {
         await client.query('ROLLBACK');
