@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- BARRERA DE SEGURIDAD ---
     /* ... (tu barrera de seguridad va aquí) ... */
 
-    const BACKEND_URL = 'http://api.bingomisterleon.com:3000';
+    const BACKEND_URL = 'https://api.bingomisterleon.com';
 
     // --- CONSTANTES Y ELEMENTOS DEL DOM ---
     const botonCantar = document.getElementById('boton-cantar');
