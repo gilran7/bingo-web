@@ -25,7 +25,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalBackdrop = document.getElementById('modal-ganador-backdrop');
     const modalCloseButton = document.getElementById('modal-close-button');
     const modalCartonContainer = document.getElementById('modal-carton-container');
-    const botonResetearVenta = document.getElementById('boton-resetear-venta'); // ¡NUEVA CONSTANTE!
+    const botonResetearVenta = document.getElementById('boton-resetear-venta');
+    
+    // --- ¡NUEVO ELEMENTO Y VARIABLE DE ESTADO! ---
+    const toggleVentasBtn = document.getElementById('toggle-ventas-btn');
+    let ventasEstanActivas = true; // Variable para saber el estado actual en el frontend
 
     // --- VARIABLES DEL JUEGO ---
     let numerosCantados = [];
@@ -36,8 +40,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let indiceGanadorActual = 0;
 
     // --- Funciones de Gestión con Backend ---
+
     async function cargarEstadoDelJuego() {
         try {
+            // --- ¡NUEVO BLOQUE! PRIMERO, CONSULTAMOS EL ESTADO DE LAS VENTAS ---
+            const estadoResponse = await fetch(`${BACKEND_URL}/estado-ventas`);
+            const estadoData = await estadoResponse.json();
+            if (!estadoResponse.ok) {
+                throw new Error(estadoData.error || 'No se pudo obtener el estado de la venta.');
+            }
+            ventasEstanActivas = estadoData.ventas_activas;
+            actualizarBotonVentas();
+            // --- FIN DEL NUEVO BLOQUE ---
+
+            // El resto de la función continúa como antes
             const response = await fetch(`${BACKEND_URL}/todos-los-cartones`);
             if (!response.ok) throw new Error("No se pudo conectar con el servidor.");
             const cartonesDesdeDB = await response.json();
@@ -62,6 +78,17 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error("Error al cargar estado:", error);
             alert("Error al cargar los cartones desde la base de datos: " + error.message);
+        }
+    }
+    
+    // --- ¡NUEVA FUNCIÓN! PARA ACTUALIZAR EL ASPECTO DEL BOTÓN DE VENTAS ---
+    function actualizarBotonVentas() {
+        if (ventasEstanActivas) {
+            toggleVentasBtn.textContent = 'Cerrar Venta';
+            toggleVentasBtn.style.backgroundColor = '#f44336'; // Rojo
+        } else {
+            toggleVentasBtn.textContent = 'Abrir Venta';
+            toggleVentasBtn.style.backgroundColor = '#28a745'; // Verde
         }
     }
 
@@ -243,8 +270,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch(`${BACKEND_URL}/resetear-venta`, { method: 'POST' });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || "Error del servidor");
+                
+                // --- ¡NUEVO BLOQUE! SINCRONIZAMOS EL ESTADO DEL FRONTEND ---
+                ventasEstanActivas = true; 
+                actualizarBotonVentas();
+                // --- FIN DEL NUEVO BLOQUE ---
+
                 alert(result.message);
-                window.location.reload();
+                window.location.reload(); // Recargamos para ver los cambios de estado de los cartones
             } catch (error) {
                 alert(`Error: ${error.message}`);
             }
@@ -266,6 +299,27 @@ document.addEventListener('DOMContentLoaded', () => {
         modalCartonContainer.appendChild(cartonClonado);
         modalBackdrop.classList.remove("hidden");
         indiceGanadorActual++;
+    });
+
+    // --- ¡NUEVO EVENT LISTENER! PARA EL BOTÓN DE ABRIR/CERRAR VENTAS ---
+    toggleVentasBtn.addEventListener('click', async () => {
+        try {
+            const response = await fetch(`${BACKEND_URL}/toggle-ventas`, {
+                method: 'POST',
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'Error al cambiar estado de venta.');
+            }
+            // Actualizamos nuestra variable local con la respuesta del servidor
+            ventasEstanActivas = data.ventas_activas;
+            // Actualizamos el aspecto del botón
+            actualizarBotonVentas();
+            alert(data.message); // Mostramos el mensaje de éxito
+        } catch (error) {
+            console.error('Error al cambiar estado de venta:', error);
+            alert(`Error: ${error.message}`);
+        }
     });
     
     botonCantar.addEventListener('click', cantarNumeroAutomatico);
