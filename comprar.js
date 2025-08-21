@@ -18,25 +18,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LÓGICA DEL CARRITO ---
 
     function actualizarCarrito() {
-        listaCarrito.innerHTML = '';
-        let total = 0;
+    listaCarrito.innerHTML = '';
+    let total = 0;
+
+    // ¡CÓDIGO CORREGIDO! Hemos eliminado el if/else por completo.
     
-        } else {
-            checkoutSection.classList.remove('hidden');
-            carrito.forEach(carton => {
-                const item = document.createElement('li');
-                item.classList.add('carrito-item');
-                item.innerHTML = `
-                    <span>Cartón #${carton.id}</span>
-                    <button class="quitar-del-carrito" data-id="${carton.id}">Quitar</button>
-                `;
-                listaCarrito.appendChild(item);
-                total += PRECIO_POR_CARTON;
-            });
-        }
-        totalAPagarSpan.textContent = total.toFixed(2);
-        validarFormulario();
-    }
+    carrito.forEach(carton => {
+        const item = document.createElement('li');
+        item.classList.add('carrito-item');
+        item.innerHTML = `
+            <span>Cartón #${carton.id}</span>
+            <button class="quitar-del-carrito" data-id="${carton.id}">Quitar</button>
+        `;
+        listaCarrito.appendChild(item);
+        total += PRECIO_POR_CARTON;
+    });
+    
+    totalAPagarSpan.textContent = total.toFixed(2);
+    validarFormulario();
+}
 
     async function agregarAlCarrito(carton) {
         try {
