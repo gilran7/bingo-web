@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cartonesContainer = document.getElementById('cartones-disponibles-container');
     const mensajeVentasCerradas = document.getElementById('mensaje-ventas-cerradas');
     const checkoutSection = document.getElementById('checkout-section');
+    checkoutSection.classList.remove('hidden');
     const listaCarrito = document.getElementById('lista-carrito');
     const totalAPagarSpan = document.getElementById('total-a-pagar');
     const purchaseForm = document.getElementById('purchase-form');
@@ -19,8 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function actualizarCarrito() {
         listaCarrito.innerHTML = '';
         let total = 0;
-        if (carrito.size === 0) {
-            checkoutSection.classList.add('hidden');
+    
+    }
         } else {
             checkoutSection.classList.remove('hidden');
             carrito.forEach(carton => {
