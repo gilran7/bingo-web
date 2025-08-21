@@ -231,3 +231,28 @@ h1 {
     background-color: #95a5a6;
     cursor: not-allowed;
 }
+
+/* --- ESTILOS PARA EL CARRITO FLOTANTE --- */
+
+#checkout-section {
+    position: fixed; /* Lo hace flotante y lo saca del flujo normal */
+    bottom: 0;       /* Lo pega a la parte inferior de la pantalla */
+    left: 0;         /* Lo alinea a la izquierda */
+    width: 100%;     /* Hace que ocupe todo el ancho */
+    background-color: #ffffff; /* Fondo blanco para que no sea transparente */
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1); /* Sombra superior para darle profundidad */
+    padding: 15px;
+    box-sizing: border-box; /* Asegura que el padding no añada ancho extra */
+    transition: transform 0.3s ease-in-out; /* Animación suave */
+    z-index: 1000; /* Asegura que esté por encima de otros elementos */
+}
+
+/* Estado inicial (oculto) - en lugar de display:none, lo movemos fuera de la pantalla */
+#checkout-section.hidden {
+    transform: translateY(100%);
+}
+
+/* Ajuste para que el último cartón no quede debajo del carrito */
+.store-container {
+    padding-bottom: 250px; /* Añade un espacio al final. Ajusta este valor si es necesario */
+}
