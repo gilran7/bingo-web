@@ -211,18 +211,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FUNCIÓN PARA AJUSTAR EL PADDING DINÁMICAMENTE ---
 
-    function ajustarPaddingParaCarrito() {
-        // 1. Medimos la altura actual del carrito flotante
-        const alturaCarrito = checkoutSection.offsetHeight;
+    // --- FUNCIÓN PARA AJUSTAR EL ESPACIADOR DINÁMICAMENTE ---
 
-        // 2. Aplicamos esa altura como padding-bottom al contenedor principal,
-        //    más un pequeño margen extra (ej. 20px) para que no quede pegado.
-    storeContainer.style.paddingBottom = `${alturaCarrito + 20}px`;
+const cartSpacer = document.getElementById('cart-spacer');
+
+function ajustarEspaciador() {
+    // Medimos la altura actual del carrito flotante
+    const alturaCarrito = checkoutSection.offsetHeight;
+    
+    // Aplicamos esa altura directamente al div espaciador
+    cartSpacer.style.height = `${alturaCarrito + 20}px`;
 }
 
 // La llamamos una vez al cargar la página
-ajustarPaddingParaCarrito();
+ajustarEspaciador();
 
-// Y la volvemos a llamar si el tamaño de la ventana cambia (ej. al girar el móvil)
-window.addEventListener('resize', ajustarPaddingParaCarrito);
+// Y la volvemos a llamar si el tamaño de la ventana cambia
+window.addEventListener('resize', ajustarEspaciador);
 });
