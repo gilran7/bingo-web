@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
         listaCarrito.innerHTML = '';
         let total = 0;
     
-    }
         } else {
             checkoutSection.classList.remove('hidden');
             carrito.forEach(carton => {
