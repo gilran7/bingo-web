@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalAPagarSpan = document.getElementById('total-a-pagar');
     const purchaseForm = document.getElementById('purchase-form');
     const submitButton = document.getElementById('submit-purchase-button');
+    const storeContainer = document.querySelector('.store-container');
 
     let carrito = new Map(); // { id => datosDelCarton }
 
@@ -206,4 +207,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     verificarEstadoYcargarCartones();
+
+
+    // --- FUNCIÓN PARA AJUSTAR EL PADDING DINÁMICAMENTE ---
+
+    function ajustarPaddingParaCarrito() {
+        // 1. Medimos la altura actual del carrito flotante
+        const alturaCarrito = checkoutSection.offsetHeight;
+
+        // 2. Aplicamos esa altura como padding-bottom al contenedor principal,
+        //    más un pequeño margen extra (ej. 20px) para que no quede pegado.
+    storeContainer.style.paddingBottom = `${alturaCarrito + 20}px`;
+}
+
+// La llamamos una vez al cargar la página
+ajustarPaddingParaCarrito();
+
+// Y la volvemos a llamar si el tamaño de la ventana cambia (ej. al girar el móvil)
+window.addEventListener('resize', ajustarPaddingParaCarrito);
 });
