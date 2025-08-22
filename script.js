@@ -228,9 +228,57 @@ document.addEventListener('DOMContentLoaded', () => {
             const celdas = Array.from(carton.elemento.querySelectorAll("td"));
             const estaMarcada = (index) => celdas[index].classList.contains('marcado');
             let esGanador = false;
-            const patrones = { '4esquinas': [0, 4, 20, 24], 'lnormal': [0, 5, 10, 15, 20, 21, 22, 23, 24], 'cartonlleno': Array.from({ length: 25 }, (_, i) => i) };
-            const indicesDelPatron = patrones[patron];
-            if (indicesDelPatron) esGanador = indicesDelPatron.every(index => estaMarcada(index));
+            const patrones = {
+    'cartonlleno': Array.from({ length: 25 }, (_, i) => i),
+    'lnormal': [0, 5, 10, 15, 20, 21, 22, 23, 24],
+    '4esquinas': [0, 4, 20, 24],
+    'fila_1': [0, 5, 10, 15, 20],
+    'fila_2': [1, 6, 11, 16, 21],
+    'fila_3': [2, 7, 12, 17, 22],
+    'fila_4': [3, 8, 13, 18, 23],
+    'fila_5': [4, 9, 14, 19, 24],
+    'columna_1': [0, 1, 2, 3, 4],
+    'columna_2': [5, 6, 7, 8, 9],
+    'columna_3': [10, 11, 12, 13, 14],
+    'columna_4': [15, 16, 17, 18, 19],
+    'columna_5': [20, 21, 22, 23, 24],
+    'linvertida': [0, 1, 2, 3, 4, 9, 14, 19, 24],
+    'e': [0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15, 20],
+    'x': [0, 4, 6, 8, 12, 16, 18, 20, 24],
+    'cruzpequeña': [2, 6, 7, 8, 12],
+    'cruzgrande': [2, 7, 10, 11, 12, 13, 14, 17, 22],
+    't': [0, 5, 10, 12, 15, 20],
+    'bordecarton': [0, 1, 2, 3, 4, 5, 9, 10, 14, 15, 19, 20, 21, 22, 23, 24]
+};
+            // --- ¡NUEVA LÓGICA DE VERIFICACIÓN FLEXIBLE! ---
+let indicesDelPatron;
+if (patron === 'fila') {
+    // Para 'fila', verificamos si CUALQUIERA de las 5 filas es ganadora
+    const filas = ['fila_1', 'fila_2', 'fila_3', 'fila_4', 'fila_5'];
+    for (const fila of filas) {
+        if (patrones[fila].every(index => estaMarcada(index))) {
+            esGanador = true;
+            break; // Si encontramos una, no necesitamos buscar más
+        }
+    }
+} else if (patron === 'columna') {
+    // Para 'columna', verificamos si CUALQUIERA de las 5 columnas es ganadora
+    const columnas = ['columna_1', 'columna_2', 'columna_3', 'columna_4', 'columna_5'];
+    for (const columna of columnas) {
+        if (patrones[columna].every(index => estaMarcada(index))) {
+            esGanador = true;
+            break;
+        }
+    }
+} else {
+    // Para todos los demás patrones, la lógica es la misma de antes
+    indicesDelPatron = patrones[patron];
+    if (indicesDelPatron) {
+        esGanador = indicesDelPatron.every(index => estaMarcada(index));
+    }
+}
+// --- FIN DE LA NUEVA LÓGICA ---
+            
             if (esGanador) ganadoresInfo.push(carton);
         });
         if (ganadoresInfo.length > 0) {
