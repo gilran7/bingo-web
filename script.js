@@ -219,42 +219,65 @@ document.addEventListener('DOMContentLoaded', () => {
         botonRetroceder.disabled=numerosCantados.length===0||juegoTerminado;
     }
 
-    function verificarGanadores() {
-        if (juegoTerminado) return;
-        const patron = selectPatron.value;
-        ganadoresInfo = [];
-        const cartonesActivos = cartonesEnJuego.filter(carton => carton.isActive);
-        cartonesActivos.forEach(carton => {
-            const celdas = Array.from(carton.elemento.querySelectorAll("td"));
-            const estaMarcada = (index) => celdas[index].classList.contains('marcado');
-            let esGanador = false;
-            const patrones = {
-    // ¡OBJETO DE PATRONES CORREGIDO Y VALIDADO!
-const patrones = {
-    'cartonlleno': Array.from({ length: 25 }, (_, i) => i),
-    'lnormal': [0, 5, 10, 15, 20, 21, 22, 23, 24],
-    '4esquinas': [0, 4, 20, 24],
-    'x': [0, 4, 6, 8, 12, 16, 18, 20, 24],
-    'cruzgrande': [2, 7, 10, 11, 12, 13, 14, 17, 22],
-    'bordecarton': [0, 1, 2, 3, 4, 5, 9, 10, 14, 15, 19, 20, 21, 22, 23, 24],
+   function verificarGanadores() {
+    if (juegoTerminado) return;
+    const patronSeleccionado = selectPatron.value;
+    ganadoresInfo = [];
     
-    // --- PATRONES CORREGIDOS SEGÚN IMÁGENES ---
-    'fila_1': [0, 5, 10, 15, 20],
-    'fila_2': [1, 6, 11, 16, 21],
-    'fila_3': [2, 7, 12, 17, 22],
-    'fila_4': [3, 8, 13, 18, 23],
-    'fila_5': [4, 9, 14, 19, 24],
-    'columna_1': [0, 1, 2, 3, 4],
-    'columna_2': [5, 6, 7, 8, 9],
-    'columna_3': [10, 11, 12, 13, 14],
-    'columna_4': [15, 16, 17, 18, 19],
-    'columna_5': [20, 21, 22, 23, 24],
-    'linvertida': [4, 9, 14, 19, 20, 21, 22, 23, 24],
-    'e': [0, 1, 2, 3, 4, 5, 10, 12, 15, 20],
-    'cruzpequeña': [6, 7, 8, 12, 18],
-    't': [0, 1, 2, 3, 4, 7, 12, 17, 22]
-};
-};
+    const cartonesActivos = cartonesEnJuego.filter(carton => carton.isActive);
+
+    cartonesActivos.forEach(carton => {
+        const celdas = Array.from(carton.elemento.querySelectorAll("td"));
+        const estaMarcada = (index) => celdas[index].classList.contains('marcado');
+        let esGanador = false;
+
+        const patrones = {
+            'cartonlleno': Array.from({ length: 25 }, (_, i) => i),
+            'lnormal': [0, 5, 10, 15, 20, 21, 22, 23, 24],
+            '4esquinas': [0, 4, 20, 24],
+            'x': [0, 4, 6, 8, 12, 16, 18, 20, 24],
+            'cruzgrande': [2, 7, 10, 11, 12, 13, 14, 17, 22],
+            'bordecarton': [0, 1, 2, 3, 4, 5, 9, 10, 14, 15, 19, 20, 21, 22, 23, 24],
+            'fila_1': [0, 5, 10, 15, 20],
+            'fila_2': [1, 6, 11, 16, 21],
+            'fila_3': [2, 7, 12, 17, 22],
+            'fila_4': [3, 8, 13, 18, 23],
+            'fila_5': [4, 9, 14, 19, 24],
+            'columna_1': [0, 1, 2, 3, 4],
+            'columna_2': [5, 6, 7, 8, 9],
+            'columna_3': [10, 11, 12, 13, 14],
+            'columna_4': [15, 16, 17, 18, 19],
+            'columna_5': [20, 21, 22, 23, 24],
+            'linvertida': [4, 9, 14, 19, 24, 20, 21, 22, 23],
+            'e': [0, 1, 2, 3, 4, 5, 10, 12, 15, 20],
+            'cruzpequeña': [7, 11, 12, 13, 17],
+            't': [0, 5, 10, 15, 20, 7, 12, 17, 22]
+        };
+
+        // --- LÓGICA DE VERIFICACIÓN CORREGIDA Y FINAL ---
+        if (patronSeleccionado === 'fila') {
+            const filas = ['fila_1', 'fila_2', 'fila_3', 'fila_4', 'fila_5'];
+            for (const fila of filas) {
+                if (patrones[fila].every(estaMarcada)) {
+                    esGanador = true;
+                    break;
+                }
+            }
+        } else if (patronSeleccionado === 'columna') {
+            const columnas = ['columna_1', 'columna_2', 'columna_3', 'columna_4', 'columna_5'];
+            for (const columna of columnas) {
+                if (patrones[columna].every(estaMarcada)) {
+                    esGanador = true;
+                    break;
+                }
+            }
+        } else {
+            const indicesDelPatron = patrones[patronSeleccionado];
+            if (indicesDelPatron) {
+                esGanador = indicesDelPatron.every(estaMarcada);
+            }
+        }
+        // --- FIN DE LA LÓGICA CORREGIDA ---
             // --- ¡NUEVA LÓGICA DE VERIFICACIÓN FLEXIBLE! ---
 let indicesDelPatron;
 if (patron === 'fila') {
