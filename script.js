@@ -219,40 +219,29 @@ document.addEventListener('DOMContentLoaded', () => {
         botonRetroceder.disabled=numerosCantados.length===0||juegoTerminado;
     }
 
-   function verificarGanadores() {
-    if (juegoTerminado) return;
-    const patronSeleccionado = selectPatron.value;
-    ganadoresInfo = [];
-    
-    const cartonesActivos = cartonesEnJuego.filter(carton => carton.isActive);
+      function verificarGanadores() {
+        if (juegoTerminado) return;
+        const patron = selectPatron.value;
+        ganadoresInfo = [];
+        const cartonesActivos = cartonesEnJuego.filter(carton => carton.isActive);
+        cartonesActivos.forEach(carton => {
+            const celdas = Array.from(carton.elemento.querySelectorAll("td"));
+            const estaMarcada = (index) => celdas[index].classList.contains('marcado');
+            let esGanador = false;
+            const patrones = { '4esquinas': [0, 4, 20, 24], 'lnormal': [0, 5, 10, 15, 20, 21, 22, 23, 24], 'cartonlleno': Array.from({ length: 25 }, (_, i) => i) };
+            const indicesDelPatron = patrones[patron];
+            if (indicesDelPatron) esGanador = indicesDelPatron.every(index => estaMarcada(index));
+            if (esGanador) ganadoresInfo.push(carton);
+        });
+        if (ganadoresInfo.length > 0) {
+            deshabilitarControlesFinDeJuego();
+            const idsGanadores = ganadoresInfo.map(c => c.id);
+            idsGanadores.forEach(id => { document.getElementById(`carton-${id}`)?.classList.add("carton-ganador"); });
+            botonMostrarGanadores.disabled = false;
+            setTimeout(() => { alert(`¡BINGO! Ganador(es) con el patrón "${patron.toUpperCase()}": Cartón #${idsGanadores.join(", #")}`); }, 100);
+        }
+    }
 
-    cartonesActivos.forEach(carton => {
-        const celdas = Array.from(carton.elemento.querySelectorAll("td"));
-        const estaMarcada = (index) => celdas[index].classList.contains('marcado');
-        let esGanador = false;
-
-        const patrones = {
-            'cartonlleno': Array.from({ length: 25 }, (_, i) => i),
-            'lnormal': [0, 5, 10, 15, 20, 21, 22, 23, 24],
-            '4esquinas': [0, 4, 20, 24],
-            'x': [0, 4, 6, 8, 12, 16, 18, 20, 24],
-            'cruzgrande': [2, 7, 10, 11, 12, 13, 14, 17, 22],
-            'bordecarton': [0, 1, 2, 3, 4, 5, 9, 10, 14, 15, 19, 20, 21, 22, 23, 24],
-            'fila_1': [0, 5, 10, 15, 20],
-            'fila_2': [1, 6, 11, 16, 21],
-            'fila_3': [2, 7, 12, 17, 22],
-            'fila_4': [3, 8, 13, 18, 23],
-            'fila_5': [4, 9, 14, 19, 24],
-            'columna_1': [0, 1, 2, 3, 4],
-            'columna_2': [5, 6, 7, 8, 9],
-            'columna_3': [10, 11, 12, 13, 14],
-            'columna_4': [15, 16, 17, 18, 19],
-            'columna_5': [20, 21, 22, 23, 24],
-            'linvertida': [4, 9, 14, 19, 24, 20, 21, 22, 23],
-            'e': [0, 1, 2, 3, 4, 5, 10, 12, 15, 20],
-            'cruzpequeña': [7, 11, 12, 13, 17],
-            't': [0, 5, 10, 15, 20, 7, 12, 17, 22]
-        };
 
         // --- LÓGICA DE VERIFICACIÓN CORREGIDA Y FINAL ---
         if (patronSeleccionado === 'fila') {
