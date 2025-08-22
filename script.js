@@ -229,9 +229,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const estaMarcada = (index) => celdas[index].classList.contains('marcado');
             let esGanador = false;
             const patrones = {
+    // ¡OBJETO DE PATRONES CORREGIDO Y VALIDADO!
+const patrones = {
     'cartonlleno': Array.from({ length: 25 }, (_, i) => i),
     'lnormal': [0, 5, 10, 15, 20, 21, 22, 23, 24],
     '4esquinas': [0, 4, 20, 24],
+    'x': [0, 4, 6, 8, 12, 16, 18, 20, 24],
+    'cruzgrande': [2, 7, 10, 11, 12, 13, 14, 17, 22],
+    'bordecarton': [0, 1, 2, 3, 4, 5, 9, 10, 14, 15, 19, 20, 21, 22, 23, 24],
+    
+    // --- PATRONES CORREGIDOS SEGÚN IMÁGENES ---
     'fila_1': [0, 5, 10, 15, 20],
     'fila_2': [1, 6, 11, 16, 21],
     'fila_3': [2, 7, 12, 17, 22],
@@ -242,13 +249,11 @@ document.addEventListener('DOMContentLoaded', () => {
     'columna_3': [10, 11, 12, 13, 14],
     'columna_4': [15, 16, 17, 18, 19],
     'columna_5': [20, 21, 22, 23, 24],
-    'linvertida': [0, 1, 2, 3, 4, 9, 14, 19, 24],
-    'e': [0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15, 20],
-    'x': [0, 4, 6, 8, 12, 16, 18, 20, 24],
-    'cruzpequeña': [2, 6, 7, 8, 12],
-    'cruzgrande': [2, 7, 10, 11, 12, 13, 14, 17, 22],
-    't': [0, 5, 10, 12, 15, 20],
-    'bordecarton': [0, 1, 2, 3, 4, 5, 9, 10, 14, 15, 19, 20, 21, 22, 23, 24]
+    'linvertida': [4, 9, 14, 19, 20, 21, 22, 23, 24],
+    'e': [0, 1, 2, 3, 4, 5, 10, 12, 15, 20],
+    'cruzpequeña': [6, 7, 8, 12, 18],
+    't': [0, 1, 2, 3, 4, 7, 12, 17, 22]
+};
 };
             // --- ¡NUEVA LÓGICA DE VERIFICACIÓN FLEXIBLE! ---
 let indicesDelPatron;
