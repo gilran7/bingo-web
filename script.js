@@ -82,15 +82,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- ¡NUEVA FUNCIÓN! PARA ACTUALIZAR EL ASPECTO DEL BOTÓN DE VENTAS ---
-    function actualizarBotonVentas() {
-        if (ventasEstanActivas) {
-            toggleVentasBtn.textContent = 'Cerrar Venta';
-            toggleVentasBtn.style.backgroundColor = '#f44336'; // Rojo
-        } else {
-            toggleVentasBtn.textContent = 'Abrir Venta';
-            toggleVentasBtn.style.backgroundColor = '#28a745'; // Verde
+   function actualizarBotonVentas() {
+    if (ventasEstanActivas) {
+        // -- VENTAS ABIERTAS --
+        toggleVentasBtn.textContent = 'Cerrar Venta';
+        toggleVentasBtn.style.backgroundColor = '#f44336'; // Rojo
+
+        // ¡NUEVA LÓGICA! Deshabilitamos los controles del juego
+        botonCantar.disabled = true;
+        botonModo.disabled = true;
+        botonRetroceder.disabled = true;
+
+        // Añadimos un "title" para explicar por qué están deshabilitados
+        botonCantar.title = 'Cierra la venta para poder iniciar el juego.';
+        botonModo.title = 'Cierra la venta para poder cambiar de modo.';
+
+    } else {
+        // -- VENTAS CERRADAS --
+        toggleVentasBtn.textContent = 'Abrir Venta';
+        toggleVentasBtn.style.backgroundColor = '#28a745'; // Verde
+
+        // ¡NUEVA LÓGICA! Habilitamos los controles del juego (si el juego no ha terminado)
+        if (!juegoTerminado) {
+            botonCantar.disabled = (modoJuego === 'manual');
+            botonModo.disabled = false;
+            botonRetroceder.disabled = (numerosCantados.length === 0);
+            
+            // Quitamos los tooltips
+            botonCantar.title = '';
+            botonModo.title = '';
         }
     }
+}
 
     function guardarEstadoDelJuegoLocal() {
         const estado = { cantados: numerosCantados, juegoTerminado: juegoTerminado, modo: modoJuego, patron: selectPatron.value };
