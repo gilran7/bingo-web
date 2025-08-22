@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalCartonContainer = document.getElementById('modal-carton-container');
     const botonResetearVenta = document.getElementById('boton-resetear-venta');
     const toggleVentasBtn = document.getElementById('toggle-ventas-btn');
+    const tablaMaestra = document.getElementById('tabla-maestra'); // Referencia al tablero maestro
 
     // --- VARIABLES DE ESTADO ---
     let ventasEstanActivas = true;
@@ -38,7 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let indiceGanadorActual = 0;
 
     // --- FUNCIONES DE GESTIÓN CON BACKEND ---
-
     async function cargarEstadoDelJuego() {
         try {
             const estadoResponse = await fetch(`${BACKEND_URL}/estado-ventas`);
@@ -67,7 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 modoJuego = estado.modo || 'automatico';
                 if (estado.patron) {
                     selectPatron.value = estado.patron;
-                    imagenPatron.src = `imagenes/patron_${estado.patron}.png`;
+                    // Disparamos el evento 'change' para que la imagen se actualice
+                    selectPatron.dispatchEvent(new Event('change')); 
                 }
             }
             actualizarTodosDisplays();
@@ -78,19 +79,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- FUNCIONES DE INTERFAZ DE USUARIO ---
-
     function actualizarBotonVentas() {
         if (ventasEstanActivas) {
             toggleVentasBtn.textContent = 'Cerrar Venta';
             toggleVentasBtn.style.backgroundColor = '#f44336';
+            
             botonCantar.disabled = true;
             botonModo.disabled = true;
             botonRetroceder.disabled = true;
+            tablaMaestra.classList.add('bloqueado'); // ¡NUEVO! Bloquea el tablero
+            
             botonCantar.title = 'Cierra la venta para poder iniciar el juego.';
             botonModo.title = 'Cierra la venta para poder cambiar de modo.';
+
         } else {
             toggleVentasBtn.textContent = 'Abrir Venta';
             toggleVentasBtn.style.backgroundColor = '#28a745';
+            
+            tablaMaestra.classList.remove('bloqueado'); // ¡NUEVO! Desbloquea el tablero
+            
             if (!juegoTerminado) {
                 botonCantar.disabled = (modoJuego === 'manual');
                 botonModo.disabled = false;
@@ -107,7 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- FUNCIONES DE CREACIÓN DE CARTONES ---
-
     function crearYAnadirCartonLocalmente() {
         const matriz = generarMatrizDeCarton();
         const maxId = cartonesEnJuego.reduce((max, c) => Math.max(c.id, max), 0);
@@ -150,7 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- LÓGICA DE JUEGO ---
-
     function crearTablaMaestra() {
         contenedorNumerosMaestros.innerHTML = '';
         contenedorColumnasLetras.innerHTML = '';
@@ -434,7 +439,14 @@ document.addEventListener('DOMContentLoaded', () => {
     botonVerificarDuplicados.addEventListener('click', verificarDuplicados);
     modalCloseButton.addEventListener('click', () => modalBackdrop.classList.add('hidden'));
     modalBackdrop.addEventListener('click', (event) => { if (event.target === modalBackdrop) modalBackdrop.classList.add('hidden'); });
-    selectPatron.addEventListener('change', () => { imagenPatron.src = `imagenes/patron_${selectPatron.value}.png`; guardarEstadoDelJuegoLocal(); });
+    
+    // --- ¡EVENT LISTENER CORREGIDO! ---
+    selectPatron.addEventListener('change', () => {
+        const patronSeleccionado = selectPatron.value;
+        imagenPatron.src = `imagenes/patron_${patronSeleccionado}.png`; 
+        guardarEstadoDelJuegoLocal(); 
+    });
+    
     botonModo.addEventListener('click', () => {
         if (juegoTerminado) return;
         modoJuego = (modoJuego === 'automatico') ? 'manual' : 'automatico';
@@ -444,10 +456,12 @@ document.addEventListener('DOMContentLoaded', () => {
         contenedorNumerosMaestros.classList.toggle('modo-manual');
         guardarEstadoDelJuegoLocal();
     });
+    
     contenedorNumerosMaestros.addEventListener('click', (event) => {
         if (modoJuego !== 'manual' || juegoTerminado) return;
         if (event.target.classList.contains('celda-maestra') && !event.target.classList.contains('cantado')) marcarNumero(parseInt(event.target.textContent, 10));
     });
+    
     zonaDeCartones.addEventListener('change', async (event) => {
         if (!event.target.classList.contains('activar-carton-checkbox')) return;
         const checkbox = event.target;

@@ -150,3 +150,10 @@ button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
     border-color: #f1c40f; /* Borde amarillo para reservados */
     background-color: #fff9c4;
 }
+
+/* --- ESTILO PARA BLOQUEAR EL TABLERO MAESTRO --- */
+#tabla-maestra.bloqueado {
+    opacity: 0.5;
+    pointer-events: none;
+    filter: grayscale(80%);
+}
