@@ -343,18 +343,52 @@ document.addEventListener('DOMContentLoaded', () => {
         if(modoJuego !== 'manual' || juegoTerminado) return;
         if(event.target.classList.contains('celda-maestra') && !event.target.classList.contains('cantado')) marcarNumero(parseInt(event.target.textContent, 10));
     });
-    zonaDeCartones.addEventListener('change', (event) => {
-        if (event.target.classList.contains('activar-carton-checkbox')) {
-            const checkbox = event.target;
-            const idCarton = parseInt(checkbox.id.split('-')[2]);
-            const carton = cartonesEnJuego.find(c => c.id === idCarton);
-            if (carton) {
-                carton.isActive = checkbox.checked;
-                carton.elemento.classList.toggle('carton-inactivo', !checkbox.checked);
-                console.log(`Estado visual del cartón #${idCarton} cambiado a: ${carton.isActive}. Se necesita backend para persistir.`);
+    zonaDeCartones.addEventListener('change', async (event) => {
+    // Nos aseguramos de que el cambio venga de una de nuestras checkboxes
+    if (!event.target.classList.contains('activar-carton-checkbox')) return;
+    
+    const checkbox = event.target;
+    const idCarton = parseInt(checkbox.id.split('-')[2]);
+    const carton = cartonesEnJuego.find(c => c.id === idCarton);
+
+    if (!carton) return;
+
+    // Deshabilitamos temporalmente la checkbox para evitar clics múltiples
+    checkbox.disabled = true;
+
+    // Si el usuario está DESMARCANDO la casilla
+    if (!checkbox.checked) {
+        try {
+            // Llamamos a nuestro nuevo endpoint en el backend
+            const response = await fetch(`${BACKEND_URL}/desactivar-carton/${idCarton}`, {
+                method: 'POST'
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'El servidor no pudo desactivar el cartón.');
             }
+            
+            // Si el backend tiene éxito, recargamos todo para ver el estado real
+            alert(result.message);
+            cargarEstadoDelJuego(); // Recarga todo para reflejar el cambio de 'vendido' a 'disponible'
+
+        } catch (error) {
+            console.error('Error al desactivar:', error);
+            alert(`Error: ${error.message}`);
+            // Si falla, revertimos el cambio visual en la checkbox
+            checkbox.checked = true;
         }
-    });
+    } else {
+        // Si el usuario está MARCANDO la casilla, por ahora solo actualizamos el estado local.
+        // La activación real a 'vendido' y 'esta_activo = true' la hace el proceso de compra.
+        carton.isActive = checkbox.checked;
+        carton.elemento.classList.toggle('carton-inactivo', !checkbox.checked);
+    }
+
+    // Volvemos a habilitar la checkbox
+    checkbox.disabled = false;
+});
 
     // --- INICIO DE LA APLICACIÓN ---
     crearTablaMaestra();
