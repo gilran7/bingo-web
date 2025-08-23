@@ -1,6 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- BARRERA DE SEGURIDAD ---
-    /* ... (tu barrera de seguridad va aquí) ... */
+    /*
+    const contraseñaCorrecta = 'BingoGil2024*';
+    let accesoPermitido = false;
+    // ... (código de la barrera de seguridad va aquí)
+    */
+    // --- FIN BARRERA DE SEGURIDAD ---
 
     const BACKEND_URL = 'https://api.bingomisterleon.com';
 
@@ -27,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalCartonContainer = document.getElementById('modal-carton-container');
     const botonResetearVenta = document.getElementById('boton-resetear-venta');
     const toggleVentasBtn = document.getElementById('toggle-ventas-btn');
-    const tablaMaestra = document.getElementById('tabla-maestra'); // Referencia al tablero maestro
+    const tablaMaestra = document.getElementById('tabla-maestra');
 
     // --- VARIABLES DE ESTADO ---
     let ventasEstanActivas = true;
@@ -67,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 modoJuego = estado.modo || 'automatico';
                 if (estado.patron) {
                     selectPatron.value = estado.patron;
-                    // Disparamos el evento 'change' para que la imagen se actualice
                     selectPatron.dispatchEvent(new Event('change')); 
                 }
             }
@@ -80,35 +84,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FUNCIONES DE INTERFAZ DE USUARIO ---
     function actualizarBotonVentas() {
-    if (ventasEstanActivas) {
-        toggleVentasBtn.textContent = 'Cerrar Venta';
-        toggleVentasBtn.style.backgroundColor = '#f44336';
-        
-        // Si las ventas están abiertas, los controles del juego se deshabilitan.
-        botonCantar.disabled = true;
-        botonModo.disabled = true;
-        botonRetroceder.disabled = true;
-        tablaMaestra.classList.add('bloqueado');
-        
-        botonCantar.title = 'Cierra la venta para poder iniciar el juego.';
-        botonModo.title = 'Cierra la venta para poder cambiar de modo.';
-
-    } else {
-        toggleVentasBtn.textContent = 'Abrir Venta';
-        toggleVentasBtn.style.backgroundColor = '#28a745';
-        
-        tablaMaestra.classList.remove('bloqueado');
-        
-        // Si las ventas están cerradas, habilitamos los controles del juego según su estado.
-        if (!juegoTerminado) {
-            botonCantar.disabled = (modoJuego === 'manual');
-            botonModo.disabled = false;
-            botonRetroceder.disabled = (numerosCantados.length === 0);
-            botonCantar.title = '';
-            botonModo.title = '';
+        if (ventasEstanActivas) {
+            toggleVentasBtn.textContent = 'Cerrar Venta';
+            toggleVentasBtn.style.backgroundColor = '#f44336';
+            botonCantar.disabled = true;
+            botonModo.disabled = true;
+            botonRetroceder.disabled = true;
+            tablaMaestra.classList.add('bloqueado');
+            botonCantar.title = 'Cierra la venta para poder iniciar el juego.';
+            botonModo.title = 'Cierra la venta para poder cambiar de modo.';
+        } else {
+            toggleVentasBtn.textContent = 'Abrir Venta';
+            toggleVentasBtn.style.backgroundColor = '#28a745';
+            tablaMaestra.classList.remove('bloqueado');
+            if (!juegoTerminado) {
+                botonCantar.disabled = (modoJuego === 'manual');
+                botonModo.disabled = false;
+                botonRetroceder.disabled = (numerosCantados.length === 0);
+                botonCantar.title = '';
+                botonModo.title = '';
+            }
         }
     }
-}
 
     function guardarEstadoDelJuegoLocal() {
         const estado = { cantados: numerosCantados, juegoTerminado: juegoTerminado, modo: modoJuego, patron: selectPatron.value };
@@ -183,18 +180,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function iniciarNuevaRonda() {
-    numerosCantados = [];
-    juegoTerminado = false;
-    ganadoresInfo = [];
-    indiceGanadorActual = 0;
-    localStorage.removeItem('bingoGameState');
-    actualizarTodosDisplays();
-    document.querySelectorAll('.carton-ganador').forEach(c => c.classList.remove('carton-ganador'));
-    botonMostrarGanadores.disabled = true;
-    
-    // Llamamos a la función para re-evaluar el estado de los botones
-    actualizarBotonVentas(); 
-}
+        numerosCantados = [];
+        juegoTerminado = false;
+        ganadoresInfo = [];
+        indiceGanadorActual = 0;
+        localStorage.removeItem('bingoGameState');
+        actualizarTodosDisplays();
+        document.querySelectorAll('.carton-ganador').forEach(c => c.classList.remove('carton-ganador'));
+        botonMostrarGanadores.disabled = true;
+        actualizarBotonVentas();
+    }
 
     function marcarNumero(numero) {
         if (numerosCantados.includes(numero) || juegoTerminado) return;
@@ -248,65 +243,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function verificarGanadores() {
-    if (juegoTerminado) return;
-    const patronSeleccionado = selectPatron.value;
-    ganadoresInfo = [];
-    const cartonesActivos = cartonesEnJuego.filter(carton => carton.isActive);
-
-    cartonesActivos.forEach(carton => {
-        const celdas = Array.from(carton.elemento.querySelectorAll("td"));
-        const estaMarcada = (index) => celdas[index].classList.contains('marcado');
-        let esGanador = false;
-
-        // --- ¡MAPA DE PATRONES CORREGIDO Y COMPLETO! ---
-        const patrones = {
-            'cartonlleno': Array.from({ length: 25 }, (_, i) => i),
-            'lnormal': [0, 5, 10, 15, 20, 21, 22, 23, 24],
-            '4esquinas': [0, 4, 20, 24],
-            'x': [0, 6, 12, 18, 24, 4, 8, 16, 20],
-            'cruzgrande': [2, 7, 10, 11, 12, 13, 14, 17, 22],
-            'bordecarton': [0, 1, 2, 3, 4, 5, 9, 10, 14, 15, 19, 20, 21, 22, 23, 24],
-            'fila_1': [0, 1, 2, 3, 4],
-            'fila_2': [5, 6, 7, 8, 9],
-            'fila_3': [10, 11, 12, 13, 14],
-            'fila_4': [15, 16, 17, 18, 19],
-            'fila_5': [20, 21, 22, 23, 24],
-            'columna_1': [0, 5, 10, 15, 20],
-            'columna_2': [1, 6, 11, 16, 21],
-            'columna_3': [2, 7, 12, 17, 22],
-            'columna_4': [3, 8, 13, 18, 23],
-            'columna_5': [4, 9, 14, 19, 24],
-            'linvertida': [0, 1, 2, 3, 4, 9, 14, 19, 24],
-            'cruzpequeña': [7, 11, 12, 13, 17],
-            // ¡PATRONES CORREGIDOS!
-            'e': [0, 1, 2, 3, 4, 10, 11, 12, 13, 14, 20, 21, 22, 23, 24],
-            't': [0, 1, 2, 3, 4, 7, 12, 17, 22]
-        };
-
-        // Lógica de verificación (sin cambios)
-        if (patronSeleccionado === 'fila') {
-            const filas = ['fila_1', 'fila_2', 'fila_3', 'fila_4', 'fila_5'];
-            for (const fila of filas) { if (patrones[fila].every(estaMarcada)) { esGanador = true; break; } }
-        } else if (patronSeleccionado === 'columna') {
-            const columnas = ['columna_1', 'columna_2', 'columna_3', 'columna_4', 'columna_5'];
-            for (const columna of columnas) { if (patrones[columna].every(estaMarcada)) { esGanador = true; break; } }
-        } else {
-            const indicesDelPatron = patrones[patronSeleccionado];
-            if (indicesDelPatron) { esGanador = indicesDelPatron.every(estaMarcada); }
-        }
-
-        if (esGanador) { ganadoresInfo.push(carton); }
-    });
-
-    if (ganadoresInfo.length > 0) {
-        deshabilitarControlesFinDeJuego();
-        const idsGanadores = ganadoresInfo.map(c => c.id);
-        idsGanadores.forEach(id => { document.getElementById(`carton-${id}`)?.classList.add("carton-ganador"); });
-        botonMostrarGanadores.disabled = false;
-        setTimeout(() => { alert(`¡BINGO! Ganador(es) con el patrón "${patronSeleccionado.toUpperCase()}": Cartón #${idsGanadores.join(", #")}`); }, 100);
-    }
-}
-
+        if (juegoTerminado) return;
+        const patronSeleccionado = selectPatron.value;
+        ganadoresInfo = [];
+        const cartonesActivos = cartonesEnJuego.filter(carton => carton.isActive);
+        cartonesActivos.forEach(carton => {
+            const celdas = Array.from(carton.elemento.querySelectorAll("td"));
+            const estaMarcada = (index) => celdas[index].classList.contains('marcado');
+            let esGanador = false;
+            const patrones = {
+                'cartonlleno': Array.from({ length: 25 }, (_, i) => i),'lnormal': [0, 5, 10, 15, 20, 21, 22, 23, 24],'4esquinas': [0, 4, 20, 24],'x': [0, 6, 12, 18, 24, 4, 8, 16, 20],'cruzgrande': [2, 7, 10, 11, 12, 13, 14, 17, 22],'bordecarton': [0, 1, 2, 3, 4, 5, 9, 10, 14, 15, 19, 20, 21, 22, 23, 24],'fila_1': [0, 1, 2, 3, 4],'fila_2': [5, 6, 7, 8, 9],'fila_3': [10, 11, 12, 13, 14],'fila_4': [15, 16, 17, 18, 19],'fila_5': [20, 21, 22, 23, 24],'columna_1': [0, 5, 10, 15, 20],'columna_2': [1, 6, 11, 16, 21],'columna_3': [2, 7, 12, 17, 22],'columna_4': [3, 8, 13, 18, 23],'columna_5': [4, 9, 14, 19, 24],'linvertida': [0, 1, 2, 3, 4, 9, 14, 19, 24],'cruzpequeña': [7, 11, 12, 13, 17],'e': [0, 1, 2, 3, 4, 10, 11, 12, 13, 14, 20, 21, 22, 23, 24],'t': [0, 1, 2, 3, 4, 7, 12, 17, 22]
+            };
+            if (patronSeleccionado === 'fila') {
+                const filas = ['fila_1', 'fila_2', 'fila_3', 'fila_4', 'fila_5'];
+                for (const fila of filas) { if (patrones[fila].every(estaMarcada)) { esGanador = true; break; } }
+            } else if (patronSeleccionado === 'columna') {
+                const columnas = ['columna_1', 'columna_2', 'columna_3', 'columna_4', 'columna_5'];
+                for (const columna of columnas) { if (patrones[columna].every(estaMarcada)) { esGanador = true; break; } }
+            } else {
+                const indicesDelPatron = patrones[patronSeleccionado];
+                if (indicesDelPatron) { esGanador = indicesDelPatron.every(estaMarcada); }
+            }
+            if (esGanador) { ganadoresInfo.push(carton); }
+        });
         if (ganadoresInfo.length > 0) {
             deshabilitarControlesFinDeJuego();
             const idsGanadores = ganadoresInfo.map(c => c.id);
@@ -328,18 +287,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function verificarDuplicados() {
         const duplicados = [];
         const matricesString = cartonesEnJuego.map(carton => JSON.stringify(carton.matriz.flat().filter(n => n !== "FREE").sort((a, b) => a - b)));
-        for (let i = 0; i < matricesString.length; i++) {
-            for (let j = i + 1; j < matricesString.length; j++) {
-                if (matricesString[i] === matricesString[j]) {
-                    duplicados.push(`- Cartón #${cartonesEnJuego[i].id} y Cartón #${cartonesEnJuego[j].id}`);
-                }
-            }
-        }
-        if (duplicados.length > 0) {
-            alert(`¡Se encontraron cartones repetidos!\n\n${[...new Set(duplicados)].join("\n")}`);
-        } else {
-            alert("No se encontraron cartones repetidos.");
-        }
+        for (let i = 0; i < matricesString.length; i++) { for (let j = i + 1; j < matricesString.length; j++) { if (matricesString[i] === matricesString[j]) { duplicados.push(`- Cartón #${cartonesEnJuego[i].id} y Cartón #${cartonesEnJuego[j].id}`); } } }
+        if (duplicados.length > 0) { alert(`¡Se encontraron cartones repetidos!\n\n${[...new Set(duplicados)].join("\n")}`); } else { alert("No se encontraron cartones repetidos."); }
     }
 
     // --- EVENT LISTENERS ---
@@ -347,11 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
     botonGuardarCartones.addEventListener('click', async () => {
         const todosLosCartonesEnPagina = document.querySelectorAll('#zona-de-cartones .carton-individual');
         if (todosLosCartonesEnPagina.length === 0) return alert("No hay cartones para guardar.");
-        const cartonesParaGuardar = Array.from(todosLosCartonesEnPagina).map(cartonDiv => {
-            const id = parseInt(cartonDiv.id.split('-')[1]);
-            const cartonOriginal = cartonesEnJuego.find(c => c.id === id);
-            return cartonOriginal ? { id: cartonOriginal.id, numbers: cartonOriginal.matriz } : null;
-        }).filter(Boolean);
+        const cartonesParaGuardar = Array.from(todosLosCartonesEnPagina).map(cartonDiv => { const id = parseInt(cartonDiv.id.split('-')[1]); const cartonOriginal = cartonesEnJuego.find(c => c.id === id); return cartonOriginal ? { id: cartonOriginal.id, numbers: cartonOriginal.matriz } : null; }).filter(Boolean);
         if (cartonesParaGuardar.length === 0) return alert("No se encontraron datos válidos para guardar.");
         botonGuardarCartones.disabled = true;
         botonGuardarCartones.textContent = 'Guardando...';
@@ -390,10 +335,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch(`${BACKEND_URL}/resetear-venta`, { method: 'POST' });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || "Error del servidor");
-                
-                ventasEstanActivas = true; 
-                actualizarBotonVentas();
-                
                 alert(result.message);
                 window.location.reload();
             } catch (error) {
@@ -424,7 +365,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`${BACKEND_URL}/toggle-ventas`, { method: 'POST' });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Error al cambiar estado de venta.');
-            
             ventasEstanActivas = data.ventas_activas;
             actualizarBotonVentas();
             alert(data.message);
@@ -442,7 +382,6 @@ document.addEventListener('DOMContentLoaded', () => {
     modalCloseButton.addEventListener('click', () => modalBackdrop.classList.add('hidden'));
     modalBackdrop.addEventListener('click', (event) => { if (event.target === modalBackdrop) modalBackdrop.classList.add('hidden'); });
     
-    // --- ¡EVENT LISTENER CORREGIDO! ---
     selectPatron.addEventListener('change', () => {
         const patronSeleccionado = selectPatron.value;
         imagenPatron.src = `imagenes/patron_${patronSeleccionado}.png`; 
@@ -482,12 +421,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Error al desactivar:', error);
                 alert(`Error: ${error.message}`);
                 checkbox.checked = true;
+            } finally {
+                checkbox.disabled = false;
             }
         } else {
+            // Permitimos marcar visualmente, pero la activación real solo ocurre en la compra.
             carton.isActive = checkbox.checked;
             carton.elemento.classList.toggle('carton-inactivo', !checkbox.checked);
+            checkbox.disabled = false;
         }
-        checkbox.disabled = false;
     });
 
     // --- INICIO DE LA APLICACIÓN ---
