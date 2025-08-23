@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // --- 3. Procesar y Dibujar la Tabla de Ventas ---
+        /*
         const tbody = document.getElementById('cuerpo-tabla-ventas');
         tbody.innerHTML = '';
         ventas.forEach(venta => {
@@ -89,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             tbody.innerHTML += fila;
         });
-        
+        */
         // --- 4. Cargar Estado del Juego (LocalStorage) ---
         const estadoGuardado = localStorage.getItem('bingoGameState');
         if (estadoGuardado) {
