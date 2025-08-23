@@ -366,8 +366,7 @@ ventas.forEach(venta => {
 // Llama a esta nueva función al final de cargarEstadoDelJuego
 async function cargarEstadoDelJuego() {
     // ... (todo el código existente de esta función)
-    // Al final, justo antes del 'catch', añade esta línea:
-    await cargarVentas(); 
+    // Al final, justo antes del 'catch', añade esta línea: 
 }
 
     // --- EVENT LISTENERS ---
