@@ -316,6 +316,39 @@ document.addEventListener('DOMContentLoaded', () => {
         if (duplicados.length > 0) { alert(`¡Se encontraron cartones repetidos!\n\n${[...new Set(duplicados)].join("\n")}`); } else { alert("No se encontraron cartones repetidos."); }
     }
 
+    // Nueva función para cargar y mostrar las ventas
+async function cargarVentas() {
+    try {
+        const response = await fetch(`${BACKEND_URL}/ventas`);
+        if (!response.ok) return;
+        const ventas = await response.json();
+        const tbody = document.getElementById('cuerpo-tabla-ventas');
+        tbody.innerHTML = '';
+        ventas.forEach(venta => {
+            const fila = `
+                <tr>
+                    <td>${new Date(venta.fecha_venta).toLocaleString()}</td>
+                    <td>${venta.nombre_comprador}</td>
+                    <td>${venta.whatsapp}</td>
+                    <td>${venta.info_transaccion}</td>
+                    <td>${JSON.parse(venta.cartones_comprados).join(', ')}</td>
+                    <td><a href="${venta.comprobante_url}" target="_blank">Ver Comprobante</a></td>
+                </tr>
+            `;
+            tbody.innerHTML += fila;
+        });
+    } catch (error) {
+        console.error("Error al cargar las ventas:", error);
+    }
+}
+
+// Llama a esta nueva función al final de cargarEstadoDelJuego
+async function cargarEstadoDelJuego() {
+    // ... (todo el código existente de esta función)
+    // Al final, justo antes del 'catch', añade esta línea:
+    await cargarVentas(); 
+}
+
     // --- EVENT LISTENERS ---
     
     botonGuardarCartones.addEventListener('click', async () => {
