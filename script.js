@@ -253,7 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const estaMarcada = (index) => celdas[index].classList.contains('marcado');
         let esGanador = false;
 
-        // --- ¡MAPA DE PATRONES CORREGIDO Y VALIDADO! ---
         const patrones = {
             'cartonlleno': Array.from({ length: 25 }, (_, i) => i),
             'lnormal': [0, 5, 10, 15, 20, 21, 22, 23, 24],
@@ -271,11 +270,11 @@ document.addEventListener('DOMContentLoaded', () => {
             'columna_3': [2, 7, 12, 17, 22],
             'columna_4': [3, 8, 13, 18, 23],
             'columna_5': [4, 9, 14, 19, 24],
+            'linvertida': [20, 21, 22, 23, 24, 4, 9, 14, 19],
             'cruzpequeña': [7, 11, 12, 13, 17],
             't': [0, 1, 2, 3, 4, 7, 12, 17, 22],
-            // ¡PATRONES CORREGIDOS SEGÚN TU DESCRIPCIÓN!
-            'linvertida': [20, 21, 22, 23, 24, 4, 9, 14, 19], // Fila 5 completa + Columna 5 (sin repetir la esquina)
-            'e': [0, 5, 10, 15, 20, 6, 16] // Columna 1 completa + celdas 1, 3 y 5 de la Columna 2
+            // --- ¡PATRÓN 'E' FINALMENTE CORREGIDO! ---
+            'e': [0, 5, 10, 15, 20, 1, 11, 21] 
         };
 
         if (patronSeleccionado === 'fila') {
