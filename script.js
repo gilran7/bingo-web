@@ -45,42 +45,70 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FUNCIONES DE GESTIÓN CON BACKEND ---
     async function cargarEstadoDelJuego() {
-        try {
-            const estadoResponse = await fetch(`${BACKEND_URL}/estado-ventas`);
-            if (!estadoResponse.ok) throw new Error('No se pudo obtener el estado de la venta.');
-            const estadoData = await estadoResponse.json();
-            ventasEstanActivas = estadoData.ventas_activas;
-            actualizarBotonVentas();
+    try {
+        // Hacemos todas las peticiones al backend en paralelo para máxima eficiencia
+        const [estadoResponse, cartonesResponse, ventasResponse] = await Promise.all([
+            fetch(`${BACKEND_URL}/estado-ventas`),
+            fetch(`${BACKEND_URL}/todos-los-cartones`),
+            fetch(`${BACKEND_URL}/ventas`)
+        ]);
 
-            const response = await fetch(`${BACKEND_URL}/todos-los-cartones`);
-            if (!response.ok) throw new Error("No se pudo conectar con el servidor.");
-            const cartonesDesdeDB = await response.json();
-            
-            cartonesEnJuego = [];
-            zonaDeCartones.innerHTML = '';
-            
-            cartonesDesdeDB.forEach(carton => {
-                const matrizNumeros = typeof carton.numeros === 'string' ? JSON.parse(carton.numeros) : carton.numeros;
-                reconstruirCartonDesdeDatos(carton.id, matrizNumeros, carton.esta_activo, carton.status_venta);
-            });
-            
-            const estadoGuardado = localStorage.getItem('bingoGameState');
-            if (estadoGuardado) {
-                const estado = JSON.parse(estadoGuardado);
-                numerosCantados = estado.cantados || [];
-                juegoTerminado = estado.juegoTerminado || false;
-                modoJuego = estado.modo || 'automatico';
-                if (estado.patron) {
-                    selectPatron.value = estado.patron;
-                    selectPatron.dispatchEvent(new Event('change')); 
-                }
+        if (!estadoResponse.ok) throw new Error('No se pudo obtener el estado de la venta.');
+        if (!cartonesResponse.ok) throw new Error('No se pudo conectar con el servidor para los cartones.');
+        if (!ventasResponse.ok) throw new Error('No se pudo obtener el registro de ventas.');
+
+        const estadoData = await estadoResponse.json();
+        const cartonesDesdeDB = await cartonesResponse.json();
+        const ventas = await ventasResponse.json();
+
+        // --- 1. Procesar Estado de Venta ---
+        ventasEstanActivas = estadoData.ventas_activas;
+        actualizarBotonVentas();
+
+        // --- 2. Procesar y Dibujar Cartones ---
+        cartonesEnJuego = [];
+        zonaDeCartones.innerHTML = '';
+        cartonesDesdeDB.forEach(carton => {
+            const matrizNumeros = typeof carton.numeros === 'string' ? JSON.parse(carton.numeros) : carton.numeros;
+            reconstruirCartonDesdeDatos(carton.id, matrizNumeros, carton.esta_activo, carton.status_venta);
+        });
+
+        // --- 3. Procesar y Dibujar la Tabla de Ventas ---
+        const tbody = document.getElementById('cuerpo-tabla-ventas');
+        tbody.innerHTML = '';
+        ventas.forEach(venta => {
+            const fila = `
+                <tr>
+                    <td>${new Date(venta.fecha_venta).toLocaleString()}</td>
+                    <td>${venta.nombre_comprador}</td>
+                    <td>${venta.whatsapp}</td>
+                    <td>${venta.info_transaccion}</td>
+                    <td>${JSON.parse(venta.cartones_comprados).join(', ')}</td>
+                    <td><a href="${venta.comprobante_url}" target="_blank" rel="noopener noreferrer">Ver</a></td>
+                </tr>
+            `;
+            tbody.innerHTML += fila;
+        });
+        
+        // --- 4. Cargar Estado del Juego (LocalStorage) ---
+        const estadoGuardado = localStorage.getItem('bingoGameState');
+        if (estadoGuardado) {
+            const estado = JSON.parse(estadoGuardado);
+            numerosCantados = estado.cantados || [];
+            juegoTerminado = estado.juegoTerminado || false;
+            modoJuego = estado.modo || 'automatico';
+            if (estado.patron) {
+                selectPatron.value = estado.patron;
+                selectPatron.dispatchEvent(new Event('change'));
             }
-            actualizarTodosDisplays();
-        } catch (error) {
-            console.error("Error al cargar estado:", error);
-            alert("Error al cargar los cartones desde la base de datos: " + error.message);
         }
+        actualizarTodosDisplays();
+
+    } catch (error) {
+        console.error("Error al cargar estado:", error);
+        alert("Error al cargar datos desde el servidor: " + error.message);
     }
+}
 
     // --- FUNCIONES DE INTERFAZ DE USUARIO ---
     function actualizarBotonVentas() {
@@ -315,32 +343,6 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < matricesString.length; i++) { for (let j = i + 1; j < matricesString.length; j++) { if (matricesString[i] === matricesString[j]) { duplicados.push(`- Cartón #${cartonesEnJuego[i].id} y Cartón #${cartonesEnJuego[j].id}`); } } }
         if (duplicados.length > 0) { alert(`¡Se encontraron cartones repetidos!\n\n${[...new Set(duplicados)].join("\n")}`); } else { alert("No se encontraron cartones repetidos."); }
     }
-
-    // Nueva función para cargar y mostrar las ventas
-async function cargarVentas() {
-    try {
-        const response = await fetch(`${BACKEND_URL}/ventas`);
-        if (!response.ok) return;
-        const ventas = await response.json();
-        const tbody = document.getElementById('cuerpo-tabla-ventas');
-        tbody.innerHTML = '';
-        ventas.forEach(venta => {
-            const fila = `
-                <tr>
-                    <td>${new Date(venta.fecha_venta).toLocaleString()}</td>
-                    <td>${venta.nombre_comprador}</td>
-                    <td>${venta.whatsapp}</td>
-                    <td>${venta.info_transaccion}</td>
-                    <td>${JSON.parse(venta.cartones_comprados).join(', ')}</td>
-                    <td><a href="${venta.comprobante_url}" target="_blank">Ver Comprobante</a></td>
-                </tr>
-            `;
-            tbody.innerHTML += fila;
-        });
-    } catch (error) {
-        console.error("Error al cargar las ventas:", error);
-    }
-}
 
 // Llama a esta nueva función al final de cargarEstadoDelJuego
 async function cargarEstadoDelJuego() {
