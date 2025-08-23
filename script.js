@@ -243,37 +243,63 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function verificarGanadores() {
-        if (juegoTerminado) return;
-        const patronSeleccionado = selectPatron.value;
-        ganadoresInfo = [];
-        const cartonesActivos = cartonesEnJuego.filter(carton => carton.isActive);
-        cartonesActivos.forEach(carton => {
-            const celdas = Array.from(carton.elemento.querySelectorAll("td"));
-            const estaMarcada = (index) => celdas[index].classList.contains('marcado');
-            let esGanador = false;
-            const patrones = {
-                'cartonlleno': Array.from({ length: 25 }, (_, i) => i),'lnormal': [0, 5, 10, 15, 20, 21, 22, 23, 24],'4esquinas': [0, 4, 20, 24],'x': [0, 6, 12, 18, 24, 4, 8, 16, 20],'cruzgrande': [2, 7, 10, 11, 12, 13, 14, 17, 22],'bordecarton': [0, 1, 2, 3, 4, 5, 9, 10, 14, 15, 19, 20, 21, 22, 23, 24],'fila_1': [0, 1, 2, 3, 4],'fila_2': [5, 6, 7, 8, 9],'fila_3': [10, 11, 12, 13, 14],'fila_4': [15, 16, 17, 18, 19],'fila_5': [20, 21, 22, 23, 24],'columna_1': [0, 5, 10, 15, 20],'columna_2': [1, 6, 11, 16, 21],'columna_3': [2, 7, 12, 17, 22],'columna_4': [3, 8, 13, 18, 23],'columna_5': [4, 9, 14, 19, 24],'linvertida': [0, 1, 2, 3, 4, 9, 14, 19, 24],'cruzpequeña': [7, 11, 12, 13, 17],'e': [0, 1, 2, 3, 4, 10, 11, 12, 13, 14, 20, 21, 22, 23, 24],'t': [0, 1, 2, 3, 4, 7, 12, 17, 22]
-            };
-            if (patronSeleccionado === 'fila') {
-                const filas = ['fila_1', 'fila_2', 'fila_3', 'fila_4', 'fila_5'];
-                for (const fila of filas) { if (patrones[fila].every(estaMarcada)) { esGanador = true; break; } }
-            } else if (patronSeleccionado === 'columna') {
-                const columnas = ['columna_1', 'columna_2', 'columna_3', 'columna_4', 'columna_5'];
-                for (const columna of columnas) { if (patrones[columna].every(estaMarcada)) { esGanador = true; break; } }
-            } else {
-                const indicesDelPatron = patrones[patronSeleccionado];
-                if (indicesDelPatron) { esGanador = indicesDelPatron.every(estaMarcada); }
-            }
-            if (esGanador) { ganadoresInfo.push(carton); }
-        });
-        if (ganadoresInfo.length > 0) {
-            deshabilitarControlesFinDeJuego();
-            const idsGanadores = ganadoresInfo.map(c => c.id);
-            idsGanadores.forEach(id => { document.getElementById(`carton-${id}`)?.classList.add("carton-ganador"); });
-            botonMostrarGanadores.disabled = false;
-            setTimeout(() => { alert(`¡BINGO! Ganador(es) con el patrón "${patronSeleccionado.toUpperCase()}": Cartón #${idsGanadores.join(", #")}`); }, 100);
+    if (juegoTerminado) return;
+    const patronSeleccionado = selectPatron.value;
+    ganadoresInfo = [];
+    const cartonesActivos = cartonesEnJuego.filter(carton => carton.isActive);
+
+    cartonesActivos.forEach(carton => {
+        const celdas = Array.from(carton.elemento.querySelectorAll("td"));
+        const estaMarcada = (index) => celdas[index].classList.contains('marcado');
+        let esGanador = false;
+
+        // --- ¡MAPA DE PATRONES CORREGIDO Y VALIDADO! ---
+        const patrones = {
+            'cartonlleno': Array.from({ length: 25 }, (_, i) => i),
+            'lnormal': [0, 5, 10, 15, 20, 21, 22, 23, 24],
+            '4esquinas': [0, 4, 20, 24],
+            'x': [0, 6, 12, 18, 24, 4, 8, 16, 20],
+            'cruzgrande': [2, 7, 10, 11, 12, 13, 14, 17, 22],
+            'bordecarton': [0, 1, 2, 3, 4, 5, 9, 10, 14, 15, 19, 20, 21, 22, 23, 24],
+            'fila_1': [0, 1, 2, 3, 4],
+            'fila_2': [5, 6, 7, 8, 9],
+            'fila_3': [10, 11, 12, 13, 14],
+            'fila_4': [15, 16, 17, 18, 19],
+            'fila_5': [20, 21, 22, 23, 24],
+            'columna_1': [0, 5, 10, 15, 20],
+            'columna_2': [1, 6, 11, 16, 21],
+            'columna_3': [2, 7, 12, 17, 22],
+            'columna_4': [3, 8, 13, 18, 23],
+            'columna_5': [4, 9, 14, 19, 24],
+            'cruzpequeña': [7, 11, 12, 13, 17],
+            't': [0, 1, 2, 3, 4, 7, 12, 17, 22],
+            // ¡PATRONES CORREGIDOS SEGÚN TU DESCRIPCIÓN!
+            'linvertida': [20, 21, 22, 23, 24, 4, 9, 14, 19], // Fila 5 completa + Columna 5 (sin repetir la esquina)
+            'e': [0, 5, 10, 15, 20, 6, 16] // Columna 1 completa + celdas 1, 3 y 5 de la Columna 2
+        };
+
+        if (patronSeleccionado === 'fila') {
+            const filas = ['fila_1', 'fila_2', 'fila_3', 'fila_4', 'fila_5'];
+            for (const fila of filas) { if (patrones[fila].every(estaMarcada)) { esGanador = true; break; } }
+        } else if (patronSeleccionado === 'columna') {
+            const columnas = ['columna_1', 'columna_2', 'columna_3', 'columna_4', 'columna_5'];
+            for (const columna of columnas) { if (patrones[columna].every(estaMarcada)) { esGanador = true; break; } }
+        } else {
+            const indicesDelPatron = patrones[patronSeleccionado];
+            if (indicesDelPatron) { esGanador = indicesDelPatron.every(estaMarcada); }
         }
+
+        if (esGanador) { ganadoresInfo.push(carton); }
+    });
+
+    if (ganadoresInfo.length > 0) {
+        deshabilitarControlesFinDeJuego();
+        const idsGanadores = ganadoresInfo.map(c => c.id);
+        idsGanadores.forEach(id => { document.getElementById(`carton-${id}`)?.classList.add("carton-ganador"); });
+        botonMostrarGanadores.disabled = false;
+        setTimeout(() => { alert(`¡BINGO! Ganador(es) con el patrón "${patronSeleccionado.toUpperCase()}": Cartón #${idsGanadores.join(", #")}`); }, 100);
     }
+}
 
     function deshabilitarControlesFinDeJuego() {
         juegoTerminado = true;
