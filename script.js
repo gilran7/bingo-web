@@ -74,23 +74,41 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // --- 3. Procesar y Dibujar la Tabla de Ventas ---
-        /*
         const tbody = document.getElementById('cuerpo-tabla-ventas');
-        tbody.innerHTML = '';
-        ventas.forEach(venta => {
-            const fila = `
-                <tr>
-                    <td>${new Date(venta.fecha_venta).toLocaleString()}</td>
-                    <td>${venta.nombre_comprador}</td>
-                    <td>${venta.whatsapp}</td>
-                    <td>${venta.info_transaccion}</td>
-                    <td>${JSON.parse(venta.cartones_comprados).join(', ')}</td>
-                    <td><a href="${venta.comprobante_url}" target="_blank" rel="noopener noreferrer">Ver</a></td>
-                </tr>
-            `;
-            tbody.innerHTML += fila;
-        });
-        */
+tbody.innerHTML = ''; // Limpiamos el cuerpo de la tabla
+
+ventas.forEach(venta => {
+    try {
+        // Verificación defensiva: nos aseguramos de que los datos existen
+        const fecha = venta.fecha_venta ? new Date(venta.fecha_venta).toLocaleString() : 'N/A';
+        const comprador = venta.nombre_comprador || 'N/A';
+        const whatsapp = venta.whatsapp || 'N/A';
+        const transaccion = venta.info_transaccion || 'N/A';
+        // Verificamos que 'cartones_comprados' sea un string JSON válido antes de parsearlo
+        const cartones = venta.cartones_comprados && typeof venta.cartones_comprados === 'string' 
+                         ? JSON.parse(venta.cartones_comprados).join(', ') 
+                         : 'N/A';
+        const comprobante = venta.comprobante_url 
+                           ? `<a href="${venta.comprobante_url}" target="_blank" rel="noopener noreferrer">Ver</a>` 
+                           : 'No disponible';
+
+        const fila = `
+            <tr>
+                <td>${fecha}</td>
+                <td>${comprador}</td>
+                <td>${whatsapp}</td>
+                <td>${transaccion}</td>
+                <td>${cartones}</td>
+                <td>${comprobante}</td>
+            </tr>
+        `;
+        tbody.innerHTML += fila;
+    } catch (e) {
+        // Si una fila de venta está corrupta, la ignoramos y seguimos con las demás.
+        console.error('Error al procesar una fila de venta:', venta, e);
+    }
+});
+        
         // --- 4. Cargar Estado del Juego (LocalStorage) ---
         const estadoGuardado = localStorage.getItem('bingoGameState');
         if (estadoGuardado) {
