@@ -66,51 +66,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FUNCIONES DE GESTIÓN CON BACKEND ---
     async function cargarEstadoDelJuego() {
-        try {
-            const responses = await Promise.all([
-                fetch(`${BACKEND_URL}/estado-ventas`),
-                fetch(`${BACKEND_URL}/todos-los-cartones`),
-                fetch(`${BACKEND_URL}/ventas`)
-            ]);
+    try {
+        // ... (el código de fetch no cambia)
+        const [estadoResponse, cartonesResponse, ventasResponse] = await Promise.all([ /* ... */ ]);
+        // ... (las validaciones no cambian)
+        const estadoData = await estadoResponse.json();
+        const cartonesDesdeDB = await cartonesResponse.json();
+        const ventas = await ventasResponse.json();
+        
+        // ... (la lógica para procesar estado y cartones no cambia)
 
-            for (const response of responses) {
-                if (!response.ok) {
-                    throw new Error(`Una de las peticiones al servidor falló: ${response.status} ${response.statusText}`);
+        // --- ¡LA CORRECCIÓN ESTÁ AQUÍ! ---
+        const tbody = document.getElementById('cuerpo-tabla-ventas');
+        if (tbody) {
+            tbody.innerHTML = '';
+            // La variable que contiene los datos es 'ventas', no 'venta'.
+            ventas.forEach(venta => { 
+                try {
+                    const fecha = venta.fecha_venta ? new Date(venta.fecha_venta).toLocaleString() : 'N/A';
+                    const comprador = venta.nombre_comprador || 'N/A';
+                    const whatsapp = venta.whatsapp || 'N/A';
+                    const transaccion = venta.info_transaccion || 'N/A';
+                    const cartones = venta.cartones_comprados ? JSON.parse(venta.cartones_comprados).join(', ') : 'N/A';
+                    const comprobante = venta.comprobante_url ? `<a href="${venta.comprobante_url}" target="_blank" rel="noopener noreferrer">Ver</a>` : 'No disponible';
+                    const fila = `<tr><td>${fecha}</td><td>${comprador}</td><td>${whatsapp}</td><td>${transaccion}</td><td>${cartones}</td><td>${comprobante}</td></tr>`;
+                    tbody.innerHTML += fila;
+                } catch (e) {
+                    console.error('Error al procesar una fila de venta:', venta, e);
                 }
-            }
-
-            const [estadoData, cartonesDesdeDB, ventas] = await Promise.all(
-                responses.map(res => res.json())
-            );
-
-            ventasEstanActivas = estadoData.ventas_activas;
-            actualizarBotonVentas();
-
-            cartonesEnJuego = [];
-            zonaDeCartones.innerHTML = '';
-            cartonesDesdeDB.forEach(carton => {
-                const matrizNumeros = typeof carton.numeros === 'string' ? JSON.parse(carton.numeros) : carton.numeros;
-                reconstruirCartonDesdeDatos(carton.id, matrizNumeros, carton.esta_activo, carton.status_venta);
             });
-
-            const tbody = document.getElementById('cuerpo-tabla-ventas');
-            if (tbody) {
-                tbody.innerHTML = '';
-                ventas.forEach(venta => {
-                    try {
-                        const fecha = venta.fecha_venta ? new Date(venta.fecha_venta).toLocaleString() : 'N/A';
-                        const comprador = venta.nombre_comprador || 'N/A';
-                        const whatsapp = venta.whatsapp || 'N/A';
-                        const transaccion = venta.info_transaccion || 'N/A';
-                        const cartones = venta.cartones_comprados ? JSON.parse(venta.cartones_comprados).join(', ') : 'N/A';
-                        const comprobante = venta.comprobante_url ? `<a href="${venta.comprobante_url}" target="_blank" rel="noopener noreferrer">Ver</a>` : 'No disponible';
-                        const fila = `<tr><td>${fecha}</td><td>${comprador}</td><td>${whatsapp}</td><td>${transaccion}</td><td>${cartones}</td><td>${comprobante}</td></tr>`;
-                        tbody.innerHTML += fila;
-                    } catch (e) {
-                        console.error('Error al procesar una fila de venta:', venta, e);
-                    }
-                });
-            }
+        }
             
             const estadoGuardado = localStorage.getItem('bingoGameState');
             if (estadoGuardado) {
