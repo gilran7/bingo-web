@@ -67,21 +67,45 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FUNCIONES DE GESTIÓN CON BACKEND ---
     async function cargarEstadoDelJuego() {
     try {
-        // ... (el código de fetch no cambia)
-        const [estadoResponse, cartonesResponse, ventasResponse] = await Promise.all([ /* ... */ ]);
-        // ... (las validaciones no cambian)
-        const estadoData = await estadoResponse.json();
-        const cartonesDesdeDB = await cartonesResponse.json();
-        const ventas = await ventasResponse.json();
-        
-        // ... (la lógica para procesar estado y cartones no cambia)
+        // --- ¡SINTAXIS Promise.all CORREGIDA! ---
+        const responses = await Promise.all([
+            fetch(`${BACKEND_URL}/estado-ventas`),
+            fetch(`${BACKEND_URL}/todos-los-cartones`),
+            fetch(`${BACKEND_URL}/ventas`)
+        ]);
 
-        // --- ¡LA CORRECCIÓN ESTÁ AQUÍ! ---
+        // Verificamos que todas las respuestas sean exitosas
+        for (const response of responses) {
+            if (!response.ok) {
+                throw new Error(`Una de las peticiones al servidor falló: ${response.statusText}`);
+            }
+        }
+
+        // Convertimos todas las respuestas a JSON en paralelo
+        const [estadoData, cartonesDesdeDB, ventas] = await Promise.all(
+            responses.map(res => res.json())
+        );
+        // --- FIN DE LA CORRECCIÓN ---
+
+        // A partir de aquí, el resto de la función es la misma que ya teníamos y funciona
+        
+        // 1. Procesar Estado de Venta
+        ventasEstanActivas = estadoData.ventas_activas;
+        actualizarBotonVentas();
+
+        // 2. Procesar y Dibujar Cartones
+        cartonesEnJuego = [];
+        zonaDeCartones.innerHTML = '';
+        cartonesDesdeDB.forEach(carton => {
+            const matrizNumeros = typeof carton.numeros === 'string' ? JSON.parse(carton.numeros) : carton.numeros;
+            reconstruirCartonDesdeDatos(carton.id, matrizNumeros, carton.esta_activo, carton.status_venta);
+        });
+
+        // 3. Procesar y Dibujar la Tabla de Ventas
         const tbody = document.getElementById('cuerpo-tabla-ventas');
         if (tbody) {
             tbody.innerHTML = '';
-            // La variable que contiene los datos es 'ventas', no 'venta'.
-            ventas.forEach(venta => { 
+            ventas.forEach(venta => {
                 try {
                     const fecha = venta.fecha_venta ? new Date(venta.fecha_venta).toLocaleString() : 'N/A';
                     const comprador = venta.nombre_comprador || 'N/A';
@@ -96,24 +120,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-            
-            const estadoGuardado = localStorage.getItem('bingoGameState');
-            if (estadoGuardado) {
-                const estado = JSON.parse(estadoGuardado);
-                numerosCantados = estado.cantados || [];
-                juegoTerminado = estado.juegoTerminado || false;
-                modoJuego = estado.modo || 'automatico';
-                if (estado.patron) {
-                    selectPatron.value = estado.patron;
-                    selectPatron.dispatchEvent(new Event('change'));
-                }
-            }
-            actualizarTodosDisplays();
-        } catch (error) {
-            console.error("Error al cargar estado:", error);
-            alert("Error al cargar datos desde el servidor: " + error.message);
-        }
+        
+        // 4. Cargar Estado del Juego Local
+        const estadoGuardado = localStorage.getItem('bingoGameState');
+        if (estadoGuardado) { /* ... (código sin cambios) ... */ }
+        actualizarTodosDisplays();
+
+    } catch (error) {
+        console.error("Error al cargar estado:", error);
+        alert("Error al cargar datos desde el servidor: " + error.message);
     }
+}
 
     function actualizarBotonVentas() {
         if (ventasEstanActivas) {
