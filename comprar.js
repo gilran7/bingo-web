@@ -1,86 +1,82 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // La URL de tu backend. Asegúrate de que esta sea la correcta.
     const BACKEND_URL = 'https://api.bingomisterleon.com';
     const PRECIO_POR_CARTON = 1.00;
 
-    // --- ELEMENTOS DEL DOM ---
     const cartonesContainer = document.getElementById('cartones-disponibles-container');
     const mensajeVentasCerradas = document.getElementById('mensaje-ventas-cerradas');
     const checkoutSection = document.getElementById('checkout-section');
-    checkoutSection.classList.remove('hidden');
     const listaCarrito = document.getElementById('lista-carrito');
     const totalAPagarSpan = document.getElementById('total-a-pagar');
     const purchaseForm = document.getElementById('purchase-form');
     const submitButton = document.getElementById('submit-purchase-button');
-    const storeContainer = document.querySelector('.store-container');
 
-    let carrito = new Map(); // { id => datosDelCarton }
+    // --- ¡LÓGICA DE PERSISTENCIA! ---
+    let carrito = new Map(JSON.parse(localStorage.getItem('bingoCarritoLocal')));
 
-    // --- LÓGICA DEL CARRITO ---
+    function guardarCarrito() {
+        localStorage.setItem('bingoCarritoLocal', JSON.stringify(Array.from(carrito.entries())));
+    }
+    // --- FIN DE LA LÓGICA DE PERSISTENCIA ---
 
     function actualizarCarrito() {
-    listaCarrito.innerHTML = '';
-    let total = 0;
-
-    // ¡CÓDIGO CORREGIDO! Hemos eliminado el if/else por completo.
-    
-    carrito.forEach(carton => {
-        const item = document.createElement('li');
-        item.classList.add('carrito-item');
-        item.innerHTML = `
-            <span>Cartón #${carton.id}</span>
-            <button class="quitar-del-carrito" data-id="${carton.id}">Quitar</button>
-        `;
-        listaCarrito.appendChild(item);
-        total += PRECIO_POR_CARTON;
-    });
-    
-    totalAPagarSpan.textContent = total.toFixed(2);
-    validarFormulario();
-}
+        listaCarrito.innerHTML = '';
+        let total = 0;
+        if (carrito.size === 0) {
+            checkoutSection.classList.add('hidden');
+        } else {
+            checkoutSection.classList.remove('hidden');
+            carrito.forEach(carton => {
+                const item = document.createElement('li');
+                item.classList.add('carrito-item');
+                item.innerHTML = `<span>Cartón #${carton.id}</span><button class="quitar-del-carrito" data-id="${carton.id}">Quitar</button>`;
+                listaCarrito.appendChild(item);
+                total += PRECIO_POR_CARTON;
+            });
+        }
+        totalAPagarSpan.textContent = total.toFixed(2);
+        validarFormulario();
+    }
 
     async function agregarAlCarrito(carton) {
         try {
+            submitButton.disabled = true; // Deshabilitamos botones para evitar acciones conflictivas
             const response = await fetch(`${BACKEND_URL}/reservar-carton/${carton.id}`, { method: 'POST' });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.error || "No se pudo reservar.");
-            
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || "No se pudo reservar.");
+            }
             carrito.set(carton.id, carton);
-            
-            // Actualizamos la vista completa para reflejar el estado de reserva.
-            verificarEstadoYcargarCartones(); 
+            guardarCarrito();
             actualizarCarrito();
-
+            verificarEstadoYcargarCartones();
         } catch (error) {
             alert(`Error al reservar: ${error.message}`);
-            verificarEstadoYcargarCartones(); // Recarga todo para asegurar consistencia.
+            verificarEstadoYcargarCartones();
+        } finally {
+            validarFormulario(); // Reactivamos el botón de compra si es válido
         }
     }
-
-    // --- ¡FUNCIÓN CORREGIDA! ---
-    // Ahora se comunica con el backend para liberar la reserva.
+    
     async function quitarDelCarrito(cartonId) {
         try {
+            submitButton.disabled = true;
             const response = await fetch(`${BACKEND_URL}/liberar-reserva/${cartonId}`, { method: 'POST' });
             if (!response.ok) {
-                 const result = await response.json();
-                 throw new Error(result.error || "El servidor no pudo liberar la reserva.");
+                const err = await response.json();
+                throw new Error(err.error || "No se pudo liberar la reserva.");
             }
-            
             carrito.delete(cartonId);
-            
-            // La forma más segura de actualizar la vista es recargar la lista de cartones.
-            verificarEstadoYcargarCartones(); 
+            guardarCarrito();
             actualizarCarrito();
-
+            verificarEstadoYcargarCartones();
         } catch (error) {
             console.error('Error al liberar la reserva:', error);
-            alert(`Hubo un problema al quitar el cartón. Recargando...`);
+            alert("Hubo un problema. Refrescando la lista...");
             verificarEstadoYcargarCartones();
+        } finally {
+            validarFormulario();
         }
     }
-
-    // --- LÓGICA DEL FORMULARIO ---
 
     function validarFormulario() {
         const esFormularioValido = purchaseForm.checkValidity();
@@ -92,31 +88,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     purchaseForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-        if (!purchaseForm.checkValidity() || carrito.size === 0) {
+        validarFormulario();
+        if (submitButton.disabled) {
             alert("Por favor, completa todos los campos y selecciona al menos un cartón.");
             return;
         }
         
         submitButton.disabled = true;
         submitButton.textContent = 'Procesando...';
-
-        const formData = new FormData();
-        formData.append('nombre', document.getElementById('nombre').value);
-        formData.append('whatsapp', document.getElementById('whatsapp').value);
-        formData.append('transaccion', document.getElementById('transaccion').value);
-        formData.append('comprobante', document.getElementById('comprobante').files[0]);
-        
+        const formData = new FormData(purchaseForm);
         const cartonesIds = Array.from(carrito.keys());
         formData.append('cartonesIds', JSON.stringify(cartonesIds));
 
         try {
-            const response = await fetch(`${BACKEND_URL}/confirmar-compra`, {
-                method: 'POST',
-                body: formData
-            });
+            const response = await fetch(`${BACKEND_URL}/confirmar-compra`, { method: 'POST', body: formData });
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || 'No se pudo confirmar la compra.');
-            
             window.location.href = '/gracias.html';
         } catch (error) {
             console.error('Error al confirmar la compra:', error);
@@ -126,11 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- CARGA Y RENDERIZADO DE CARTONES ---
-
-    // --- ¡FUNCIÓN REEMPLAZADA! ---
-    // Esta función ahora se encarga de dibujar TODOS los cartones
-    // y aplicar los estilos correctos según el estado.
     function renderizarCartones(cartones) {
         cartonesContainer.innerHTML = '';
         cartones.forEach(carton => {
@@ -138,14 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
             cartonDiv.classList.add('carton-venta');
             cartonDiv.dataset.id = carton.id;
             
-            // Si el cartón viene de la BD como 'reservado' O si está en nuestro carrito local,
-            // lo marcamos visualmente como reservado.
-            if (carton.status_venta === 'reservado' || carrito.has(carton.id)) {
+            if (carton.status_venta === 'reservado') {
                 cartonDiv.classList.add('reservado');
             }
             
             const matriz = typeof carton.numeros === 'string' ? JSON.parse(carton.numeros) : carton.numeros;
-            
             let tablaHTML = '<table><thead><tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr></thead><tbody>';
             for (let i = 0; i < 5; i++) {
                 tablaHTML += '<tr>';
@@ -155,19 +134,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 tablaHTML += '</tr>';
             }
             tablaHTML += '</tbody></table>';
-            
             cartonDiv.innerHTML = `<h4>Cartón #${carton.id}</h4>${tablaHTML}`;
-
-            // Añadimos el evento de click. El CSS se encargará de que no se pueda hacer click
-            // en los que ya están reservados por otros.
-            cartonDiv.addEventListener('click', () => {
-                if (carton.status_venta === 'disponible' && !carrito.has(carton.id)) {
-                    agregarAlCarrito(carton);
-                } else if (carrito.has(carton.id)) {
-                    quitarDelCarrito(carton.id);
-                }
-            });
             
+            if (carton.status_venta === 'reservado' && !carrito.has(carton.id)) {
+                 // Es de otro, no hacemos nada. El CSS lo bloquea.
+            } else {
+                 cartonDiv.addEventListener('click', () => {
+                    if (carrito.has(carton.id)) {
+                        quitarDelCarrito(carton.id);
+                    } else {
+                        agregarAlCarrito(carton);
+                    }
+                });
+            }
             cartonesContainer.appendChild(cartonDiv);
         });
     }
@@ -182,13 +161,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (estadoData.ventas_activas) {
                 cartonesContainer.classList.remove('hidden');
                 mensajeVentasCerradas.classList.add('hidden');
-                
                 const cartonesResponse = await fetch(`${BACKEND_URL}/cartones-disponibles`);
                 if (!cartonesResponse.ok) throw new Error('Error al cargar los cartones.');
                 const cartones = await cartonesResponse.json();
                 renderizarCartones(cartones);
             } else {
-                cartonesContainer.innerHTML = ''; // Limpiamos el "cargando"
+                cartonesContainer.innerHTML = '';
                 cartonesContainer.classList.add('hidden');
                 mensajeVentasCerradas.classList.remove('hidden');
             }
@@ -198,7 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- INICIO DE LA APLICACIÓN ---
     listaCarrito.addEventListener('click', (event) => {
         if (event.target.classList.contains('quitar-del-carrito')) {
             const cartonId = parseInt(event.target.dataset.id);
@@ -206,26 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    actualizarCarrito();
     verificarEstadoYcargarCartones();
-
-
-    // --- FUNCIÓN PARA AJUSTAR EL PADDING DINÁMICAMENTE ---
-
-    // --- FUNCIÓN PARA AJUSTAR EL ESPACIADOR DINÁMICAMENTE ---
-
-const cartSpacer = document.getElementById('cart-spacer');
-
-function ajustarEspaciador() {
-    // Medimos la altura actual del carrito flotante
-    const alturaCarrito = checkoutSection.offsetHeight;
-    
-    // Aplicamos esa altura directamente al div espaciador
-    cartSpacer.style.height = `${alturaCarrito + 20}px`;
-}
-
-// La llamamos una vez al cargar la página
-ajustarEspaciador();
-
-// Y la volvemos a llamar si el tamaño de la ventana cambia
-window.addEventListener('resize', ajustarEspaciador);
 });
