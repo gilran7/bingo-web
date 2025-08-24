@@ -19,23 +19,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FIN DE LA LÓGICA DE PERSISTENCIA ---
 
     function actualizarCarrito() {
-        listaCarrito.innerHTML = '';
-        let total = 0;
-        if (carrito.size === 0) {
-            checkoutSection.classList.add('hidden');
-        } else {
-            checkoutSection.classList.remove('hidden');
-            carrito.forEach(carton => {
-                const item = document.createElement('li');
-                item.classList.add('carrito-item');
-                item.innerHTML = `<span>Cartón #${carton.id}</span><button class="quitar-del-carrito" data-id="${carton.id}">Quitar</button>`;
-                listaCarrito.appendChild(item);
-                total += PRECIO_POR_CARTON;
-            });
-        }
-        totalAPagarSpan.textContent = total.toFixed(2);
-        validarFormulario();
+    listaCarrito.innerHTML = '';
+    let total = 0;
+    const mainContainer = document.getElementById('cartones-disponibles-container');
+
+    if (carrito.size === 0) {
+        checkoutSection.classList.add('hidden');
+        mainContainer.style.paddingBottom = '20px'; // Restaura el padding original
+    } else {
+        checkoutSection.classList.remove('hidden');
+        mainContainer.style.paddingBottom = '350px'; // Añade espacio para el carrito flotante
+        carrito.forEach(carton => {
+            const item = document.createElement('li');
+            item.classList.add('carrito-item');
+            item.innerHTML = `<span>Cartón #${carton.id}</span><button class="quitar-del-carrito" data-id="${carton.id}">Quitar</button>`;
+            listaCarrito.appendChild(item);
+            total += PRECIO_POR_CARTON;
+        });
     }
+    totalAPagarSpan.textContent = total.toFixed(2);
+    validarFormulario();
+}
 
     async function agregarAlCarrito(carton) {
         try {

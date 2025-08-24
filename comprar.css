@@ -250,3 +250,27 @@ h1 {
     border-top-left-radius: 12px; /* Esquinas redondeadas para un look moderno */
     border-top-right-radius: 12px;
 }
+
+/* --- ¡NUEVO! ESTILOS PARA MEJORAR LA EXPERIENCIA MÓVIL --- */
+@media (max-width: 768px) {
+    #checkout-section {
+        position: fixed; /* Lo hacemos flotante */
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin-top: 0;
+        background: white;
+        border-top: 2px solid #3498db;
+        box-shadow: 0 -5px 15px rgba(0,0,0,0.1);
+        z-index: 100; /* Nos aseguramos de que esté por encima de todo */
+        padding: 10px;
+        max-height: 70vh; /* Altura máxima para que no ocupe toda la pantalla */
+        overflow-y: auto; /* Permite scroll si el contenido es muy largo */
+    }
+
+    #cartones-disponibles-container {
+        /* Añadimos espacio extra al final para que los últimos cartones
+           no queden ocultos detrás del carrito flotante */
+        padding-bottom: 300px; /* Ajusta este valor si es necesario */
+    }
+}
