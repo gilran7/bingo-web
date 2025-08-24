@@ -346,7 +346,6 @@ async function cargarEstadoDelJuego() {
 }
 
     // --- EVENT LISTENERS ---
-    
     botonGuardarCartones.addEventListener('click', async () => {
         const todosLosCartonesEnPagina = document.querySelectorAll('#zona-de-cartones .carton-individual');
         if (todosLosCartonesEnPagina.length === 0) return alert("No hay cartones para guardar.");
