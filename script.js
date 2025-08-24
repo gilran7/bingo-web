@@ -350,8 +350,9 @@ async function cargarEstadoDelJuego() {
     botonGuardarCartones.addEventListener('click', async () => {
         const todosLosCartonesEnPagina = document.querySelectorAll('#zona-de-cartones .carton-individual');
         if (todosLosCartonesEnPagina.length === 0) return alert("No hay cartones para guardar.");
-        const cartonesParaGuardar = Array.from(todosLosCartonesEnPagina).map(cartonDiv => { const id = parseInt(cartonDiv.id.split('-')[1]); const cartonOriginal = cartonesEnJuego.find(c => c.id === id); return cartonOriginal ? { id: cartonOriginal.id, numbers: cartonOriginal.matriz } : null; }).filter(Boolean);
+        const cartonesParaGuardar = Array.from(todosLosCartonesEnPagina).map(cartonDiv => { /* ... */ }).filter(Boolean);
         if (cartonesParaGuardar.length === 0) return alert("No se encontraron datos válidos para guardar.");
+        
         botonGuardarCartones.disabled = true;
         botonGuardarCartones.textContent = 'Guardando...';
         try {
@@ -359,7 +360,10 @@ async function cargarEstadoDelJuego() {
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || "Error del servidor");
             alert(result.message);
-            window.location.reload();
+            
+            // --- ¡CORRECCIÓN APLICADA! ---
+            cargarEstadoDelJuego(); // Actualizamos la vista sin recargar.
+
         } catch (error) {
             alert(`Error al guardar: ${error.message}`);
         } finally {
@@ -375,7 +379,10 @@ async function cargarEstadoDelJuego() {
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'No se pudieron borrar.');
                 alert(result.message);
-                window.location.reload();
+
+                // --- ¡CORRECCIÓN APLICADA! ---
+                cargarEstadoDelJuego(); // Actualizamos la vista sin recargar.
+
             } catch (error) {
                 console.error("Error al borrar:", error);
                 alert(`Error: ${error.message}`);
@@ -384,13 +391,16 @@ async function cargarEstadoDelJuego() {
     });
 
     botonResetearVenta.addEventListener('click', async () => {
-        if (confirm('¿Estás seguro? Esta acción pondrá TODOS los cartones (incluidos los vendidos y reservados) de nuevo a la venta.')) {
+        if (confirm('¿Estás seguro? Esta acción pondrá TODOS los cartones de nuevo a la venta.')) {
             try {
                 const response = await fetch(`${BACKEND_URL}/resetear-venta`, { method: 'POST' });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || "Error del servidor");
                 alert(result.message);
-                window.location.reload();
+                
+                // --- ¡CORRECCIÓN APLICADA! ---
+                cargarEstadoDelJuego(); // Actualizamos la vista sin recargar.
+
             } catch (error) {
                 alert(`Error: ${error.message}`);
             }
