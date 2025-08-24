@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const estadoData = await estadoResponse.json();
         const cartonesDesdeDB = await cartonesResponse.json();
+        console.log("Cartones recibidos de la base de datos:", cartonesDesdeDB);
         const ventas = await ventasResponse.json();
 
         // --- 1. Procesar Estado de Venta ---
