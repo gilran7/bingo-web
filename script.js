@@ -347,29 +347,30 @@ async function cargarEstadoDelJuego() {
 
     // --- EVENT LISTENERS ---
     botonGuardarCartones.addEventListener('click', async () => {
-        const todosLosCartonesEnPagina = document.querySelectorAll('#zona-de-cartones .carton-individual');
-        if (todosLosCartonesEnPagina.length === 0) return alert("No hay cartones para guardar.");
-        const cartonesParaGuardar = Array.from(todosLosCartonesEnPagina).map(cartonDiv => { /* ... */ }).filter(Boolean);
-        if (cartonesParaGuardar.length === 0) return alert("No se encontraron datos válidos para guardar.");
-        
-        botonGuardarCartones.disabled = true;
-        botonGuardarCartones.textContent = 'Guardando...';
-        try {
-            const response = await fetch(`${BACKEND_URL}/guardar-lote-cartones`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cartonesParaGuardar) });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.error || "Error del servidor");
-            alert(result.message);
-            
-            // --- ¡CORRECCIÓN APLICADA! ---
-            cargarEstadoDelJuego(); // Actualizamos la vista sin recargar.
-
-        } catch (error) {
-            alert(`Error al guardar: ${error.message}`);
-        } finally {
-            botonGuardarCartones.disabled = false;
-            botonGuardarCartones.textContent = 'Guardar Cartones en Almacén';
-        }
-    });
+    if (cartonesEnJuego.length === 0) return alert("No hay cartones para guardar.");
+    
+    // Usamos directamente cartonesEnJuego, que se actualiza al añadir nuevos cartones
+    const cartonesParaGuardar = cartonesEnJuego.map(c => ({ id: c.id, numbers: c.matriz }));
+    
+    botonGuardarCartones.disabled = true;
+    botonGuardarCartones.textContent = 'Guardando...';
+    try {
+        const response = await fetch(`${BACKEND_URL}/guardar-lote-cartones`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cartonesParaGuardar)
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error);
+        alert(result.message);
+        window.location.reload();
+    } catch (error) {
+        alert(`Error al guardar: ${error.message}`);
+    } finally {
+        botonGuardarCartones.disabled = false;
+        botonGuardarCartones.textContent = 'Guardar Cartones en Almacén';
+    }
+});
 
     botonBorrarCartones.addEventListener('click', async () => {
         if (confirm('¿BORRAR TODOS LOS CARTONES DE LA VENTA ACTUAL? Esta acción es permanente.')) {
