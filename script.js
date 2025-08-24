@@ -1,32 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- BARRERA DE SEGURIDAD ---
-    /*
-    const contraseñaCorrecta = 'BingoGil2024*';
-    let accesoPermitido = false;
-    if (sessionStorage.getItem('accesoBingoAdmin') === 'concedido') {
-        accesoPermitido = true;
-    } else {
-        let intentos = 3;
-        while (intentos > 0) {
-            let contraseñaIngresada = prompt(`Por favor, ingresa la contraseña de administrador. Tienes ${intentos} intentos.`);
-            if (contraseñaIngresada === null) break;
-            if (contraseñaIngresada === contraseñaCorrecta) {
-                sessionStorage.setItem('accesoBingoAdmin', 'concedido');
-                accesoPermitido = true;
-                break;
-            } else {
-                intentos--;
-                alert(intentos > 0 ? `Contraseña incorrecta. Te quedan ${intentos} intentos.` : 'Has agotado tus intentos. Acceso denegado.');
-            }
-        }
-    }
-    if (!accesoPermitido) {
-        document.body.innerHTML = '<h1 style="text-align: center; margin-top: 50px; font-family: sans-serif;">ACCESO DENEGADO</h1>';
-        throw new Error("Acceso denegado por contraseña incorrecta.");
-    }
-    */
-    // --- FIN BARRERA DE SEGURIDAD ---
-
     const BACKEND_URL = 'https://api.bingomisterleon.com';
 
     // --- CONSTANTES Y ELEMENTOS DEL DOM ---
@@ -62,6 +34,69 @@ document.addEventListener('DOMContentLoaded', () => {
     let cartonesEnJuego = [];
     let ganadoresInfo = [];
     let indiceGanadorActual = 0;
+
+    // --- FUNCIONES DE GESTIÓN CON BACKEND ---
+    async function cargarEstadoDelJuego() {
+        try {
+            const [estadoResponse, cartonesResponse, ventasResponse] = await Promise.all([
+                fetch(`${BACKEND_URL}/estado-ventas`),
+                fetch(`${BACKEND_URL}/todos-los-cartones`),
+                fetch(`${BACKEND_URL}/ventas`)
+            ]);
+            if (!estadoResponse.ok) throw new Error('No se pudo obtener el estado de la venta.');
+            if (!cartonesResponse.ok) throw new Error('No se pudo conectar con el servidor para los cartones.');
+            if (!ventasResponse.ok) throw new Error('No se pudo obtener el registro de ventas.');
+
+            const estadoData = await estadoResponse.json();
+            const cartonesDesdeDB = await cartonesResponse.json();
+            const ventas = await ventasResponse.json();
+
+            ventasEstanActivas = estadoData.ventas_activas;
+            actualizarBotonVentas();
+
+            cartonesEnJuego = [];
+            zonaDeCartones.innerHTML = '';
+            cartonesDesdeDB.forEach(carton => {
+                const matrizNumeros = typeof carton.numeros === 'string' ? JSON.parse(carton.numeros) : carton.numeros;
+                reconstruirCartonDesdeDatos(carton.id, matrizNumeros, carton.esta_activo, carton.status_venta);
+            });
+
+            const tbody = document.getElementById('cuerpo-tabla-ventas');
+            if (tbody) {
+                tbody.innerHTML = '';
+                ventas.forEach(venta => {
+                    try {
+                        const fecha = venta.fecha_venta ? new Date(venta.fecha_venta).toLocaleString() : 'N/A';
+                        const comprador = venta.nombre_comprador || 'N/A';
+                        const whatsapp = venta.whatsapp || 'N/A';
+                        const transaccion = venta.info_transaccion || 'N/A';
+                        const cartones = venta.cartones_comprados ? JSON.parse(venta.cartones_comprados).join(', ') : 'N/A';
+                        const comprobante = venta.comprobante_url ? `<a href="${venta.comprobante_url}" target="_blank" rel="noopener noreferrer">Ver</a>` : 'No disponible';
+                        const fila = `<tr><td>${fecha}</td><td>${comprador}</td><td>${whatsapp}</td><td>${transaccion}</td><td>${cartones}</td><td>${comprobante}</td></tr>`;
+                        tbody.innerHTML += fila;
+                    } catch (e) {
+                        console.error('Error al procesar una fila de venta:', venta, e);
+                    }
+                });
+            }
+            
+            const estadoGuardado = localStorage.getItem('bingoGameState');
+            if (estadoGuardado) {
+                const estado = JSON.parse(estadoGuardado);
+                numerosCantados = estado.cantados || [];
+                juegoTerminado = estado.juegoTerminado || false;
+                modoJuego = estado.modo || 'automatico';
+                if (estado.patron) {
+                    selectPatron.value = estado.patron;
+                    selectPatron.dispatchEvent(new Event('change'));
+                }
+            }
+            actualizarTodosDisplays();
+        } catch (error) {
+            console.error("Error al cargar estado:", error);
+            alert("Error al cargar datos desde el servidor: " + error.message);
+        }
+    }
 
     // --- FUNCIONES DE GESTIÓN CON BACKEND ---
     async function cargarEstadoDelJuego() {
@@ -443,31 +478,31 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.target.classList.contains('celda-maestra') && !event.target.classList.contains('cantado')) marcarNumero(parseInt(event.target.textContent, 10));
     });
     
+     // --- EVENT LISTENER FINAL PARA 'Juega:' ---
     zonaDeCartones.addEventListener('change', async (event) => {
         if (!event.target.classList.contains('activar-carton-checkbox')) return;
+        
         const checkbox = event.target;
         const idCarton = parseInt(checkbox.id.split('-')[2]);
         const carton = cartonesEnJuego.find(c => c.id === idCarton);
         if (!carton) return;
+
         checkbox.disabled = true;
-        if (!checkbox.checked) {
-            try {
-                const response = await fetch(`${BACKEND_URL}/desactivar-carton/${idCarton}`, { method: 'POST' });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'El servidor no pudo desactivar el cartón.');
-                alert(result.message);
-                await cargarEstadoDelJuego();
-            } catch (error) {
-                console.error('Error al desactivar:', error);
-                alert(`Error: ${error.message}`);
-                checkbox.checked = true; // Revertimos visualmente si falla
-            } finally {
-                checkbox.disabled = false;
-            }
-        } else {
-            // No hacemos nada al marcar, la activación es solo por compra
-            checkbox.checked = false; // Revertimos visualmente
-            alert("Un cartón solo puede activarse a través de una compra confirmada.");
+
+        try {
+            const response = await fetch(`${BACKEND_URL}/toggle-estado-juego/${idCarton}`, { method: 'POST' });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'El servidor no pudo cambiar el estado.');
+            
+            carton.isActive = result.esta_activo;
+            checkbox.checked = result.esta_activo;
+            carton.elemento.classList.toggle('carton-inactivo', !result.esta_activo);
+            alert(result.message);
+        } catch (error) {
+            console.error('Error al cambiar estado:', error);
+            alert(`Error: ${error.message}`);
+            checkbox.checked = !checkbox.checked; // Revertimos visualmente si falla
+        } finally {
             checkbox.disabled = false;
         }
     });
@@ -475,4 +510,4 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- INICIO DE LA APLICACIÓN ---
     crearTablaMaestra();
     cargarEstadoDelJuego();
-});``
+});
