@@ -1,6 +1,34 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- BARRERA DE SEGURIDAD ---
+    /*
+    const contraseñaCorrecta = 'BingoGil2024*';
+    let accesoPermitido = false;
+    if (sessionStorage.getItem('accesoBingoAdmin') === 'concedido') {
+        accesoPermitido = true;
+    } else {
+        let intentos = 3;
+        while (intentos > 0) {
+            let contraseñaIngresada = prompt(`Por favor, ingresa la contraseña de administrador. Tienes ${intentos} intentos.`);
+            if (contraseñaIngresada === null) break;
+            if (contraseñaIngresada === contraseñaCorrecta) {
+                sessionStorage.setItem('accesoBingoAdmin', 'concedido');
+                accesoPermitido = true;
+                break;
+            } else {
+                intentos--;
+                alert(intentos > 0 ? `Contraseña incorrecta. Te quedan ${intentos} intentos.` : 'Has agotado tus intentos. Acceso denegado.');
+            }
+        }
+    }
+    if (!accesoPermitido) {
+        document.body.innerHTML = '<h1 style="text-align: center; margin-top: 50px; font-family: sans-serif;">ACCESO DENEGADO</h1>';
+        throw new Error("Acceso denegado por contraseña incorrecta.");
+    }
+    */
+    // --- FIN BARRERA DE SEGURIDAD ---
+
     const BACKEND_URL = 'https://api.bingomisterleon.com';
-    
+
     // --- CONSTANTES Y ELEMENTOS DEL DOM ---
     const botonCantar = document.getElementById('boton-cantar');
     const botonNuevaRonda = document.getElementById('boton-nueva-ronda');
@@ -25,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const botonResetearVenta = document.getElementById('boton-resetear-venta');
     const toggleVentasBtn = document.getElementById('toggle-ventas-btn');
     const tablaMaestra = document.getElementById('tabla-maestra');
-    const botonBorrarVentas = document.getElementById('boton-borrar-ventas'); // ¡NUEVA CONSTANTE!
+    const botonBorrarVentas = document.getElementById('boton-borrar-ventas');
 
     // --- VARIABLES DE ESTADO ---
     let ventasEstanActivas = true;
@@ -39,19 +67,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FUNCIONES DE GESTIÓN CON BACKEND ---
     async function cargarEstadoDelJuego() {
         try {
-            const [estadoResponse, cartonesResponse, ventasResponse] = await Promise.all([
+            const responses = await Promise.all([
                 fetch(`${BACKEND_URL}/estado-ventas`),
                 fetch(`${BACKEND_URL}/todos-los-cartones`),
                 fetch(`${BACKEND_URL}/ventas`)
             ]);
 
-            if (!estadoResponse.ok) throw new Error('No se pudo obtener el estado de la venta.');
-            if (!cartonesResponse.ok) throw new Error('No se pudo conectar con el servidor para los cartones.');
-            if (!ventasResponse.ok) throw new Error('No se pudo obtener el registro de ventas.');
+            for (const response of responses) {
+                if (!response.ok) {
+                    throw new Error(`Una de las peticiones al servidor falló: ${response.status} ${response.statusText}`);
+                }
+            }
 
-            const estadoData = await estadoResponse.json();
-            const cartonesDesdeDB = await cartonesResponse.json();
-            const ventas = await ventasResponse.json();
+            const [estadoData, cartonesDesdeDB, ventas] = await Promise.all(
+                responses.map(res => res.json())
+            );
 
             ventasEstanActivas = estadoData.ventas_activas;
             actualizarBotonVentas();
@@ -72,7 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         const comprador = venta.nombre_comprador || 'N/A';
                         const whatsapp = venta.whatsapp || 'N/A';
                         const transaccion = venta.info_transaccion || 'N/A';
-                        // --- ¡CORRECCIÓN APLICADA! ---
                         const cartones = venta.cartones_comprados ? JSON.parse(venta.cartones_comprados).join(', ') : 'N/A';
                         const comprobante = venta.comprobante_url ? `<a href="${venta.comprobante_url}" target="_blank" rel="noopener noreferrer">Ver</a>` : 'No disponible';
                         const fila = `<tr><td>${fecha}</td><td>${comprador}</td><td>${whatsapp}</td><td>${transaccion}</td><td>${cartones}</td><td>${comprobante}</td></tr>`;
@@ -82,57 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
             }
-            
-            const estadoGuardado = localStorage.getItem('bingoGameState');
-            if (estadoGuardado) {
-                const estado = JSON.parse(estadoGuardado);
-                numerosCantados = estado.cantados || [];
-                juegoTerminado = estado.juegoTerminado || false;
-                modoJuego = estado.modo || 'automatico';
-                if (estado.patron) {
-                    selectPatron.value = estado.patron;
-                    selectPatron.dispatchEvent(new Event('change'));
-                }
-            }
-            actualizarTodosDisplays();
-        } catch (error) {
-            console.error("Error al cargar estado:", error);
-            alert("Error al cargar datos desde el servidor: " + error.message);
-        }
-    }
-
-    // --- FUNCIONES DE GESTIÓN CON BACKEND ---
-    async function cargarEstadoDelJuego() {
-    try {
-        // ... (el código de fetch no cambia)
-        const [estadoResponse, cartonesResponse, ventasResponse] = await Promise.all([ /* ... */ ]);
-        // ... (las validaciones no cambian)
-        const estadoData = await estadoResponse.json();
-        const cartonesDesdeDB = await cartonesResponse.json();
-        const ventas = await ventasResponse.json();
-        
-        // ... (la lógica para procesar estado y cartones no cambia)
-
-        // --- ¡LA CORRECCIÓN FINAL ESTÁ AQUÍ! ---
-        const tbody = document.getElementById('cuerpo-tabla-ventas');
-        if (tbody) {
-            tbody.innerHTML = '';
-            ventas.forEach(venta => {
-                try {
-                    const fecha = venta.fecha_venta ? new Date(venta.fecha_venta).toLocaleString() : 'N/A';
-                    const comprador = venta.nombre_comprador || 'N/A';
-                    const whatsapp = venta.whatsapp || 'N/A';
-                    const transaccion = venta.info_transaccion || 'N/A';
-                    // El nombre correcto de la columna es 'cartones_comprados'
-                    const cartones = venta.cartones_comprados ? JSON.parse(venta.cartones_comprados).join(', ') : 'N/A';
-                    const comprobante = venta.comprobante_url ? `<a href="${venta.comprobante_url}" target="_blank" rel="noopener noreferrer">Ver</a>` : 'No disponible';
-                    const fila = `<tr><td>${fecha}</td><td>${comprador}</td><td>${whatsapp}</td><td>${transaccion}</td><td>${cartones}</td><td>${comprobante}</td></tr>`;
-                    tbody.innerHTML += fila;
-                } catch (e) {
-                    console.error('Error al procesar una fila de venta:', venta, e);
-                }
-            });
-        }
             
             const estadoGuardado = localStorage.getItem('bingoGameState');
             if (estadoGuardado) {
