@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     */
     // --- FIN BARRERA DE SEGURIDAD ---
 
-    const BACKEND_URL = 'https://api.bingomisterleon.com';
+    const BACKEND_URL = '/api';
 
     // --- CONSTANTES Y ELEMENTOS DEL DOM ---
     const botonCantar = document.getElementById('boton-cantar');

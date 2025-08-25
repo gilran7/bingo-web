@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const BACKEND_URL = 'https://api.bingomisterleon.com';
+    const BACKEND_URL = '/api';
     const PRECIO_POR_CARTON = 1.00;
 
     const cartonesContainer = document.getElementById('cartones-disponibles-container');

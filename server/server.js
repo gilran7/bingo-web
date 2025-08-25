@@ -1,35 +1,40 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const multer = require('multer');
-const { createClient } = require('@supabase/supabase-js');
+const path = require('path'); // Módulo para manejar rutas de archivos
 
-if (!process.env.DATABASE_URL || !process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
-  console.error("ERROR: Faltan variables de entorno cruciales.");
-  process.exit(1);
-}
-
+// --- CONFIGURACIÓN INICIAL ---
 const app = express();
 const PORT = process.env.PORT || 3000;
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  // Ya no se necesita SSL para la conexión local
 });
-const corsOptions = {
-  origin: 'https://bingo-frontend-4h3h.onrender.com',
-  optionsSuccessStatus: 200
-};
-const upload = multer({ storage: multer.memoryStorage() });
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
+// Configuración de CORS simplificada
+const corsOptions = {
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+const upload = multer({ storage: multer.memoryStorage() });
+
+// --- MIDDLEWARE ---
+app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
+
+// --- SERVIR ARCHIVOS ESTÁTICOS DEL FRONTEND ---
+// Esta línea sirve los archivos HTML, CSS, JS, etc., desde la carpeta 'public'
+app.use(express.static(path.join(__dirname, 'public')));
+
 
 // --- RUTAS DE LA API ---
 
-app.get('/', (req, res) => res.send('Servidor del Bingo funcionando.'));
-
-app.get('/estado-ventas', async (req, res) => {
+app.get('/api/estado-ventas', async (req, res) => {
     try {
         const result = await pool.query('SELECT ventas_activas FROM estado_sistema WHERE id = 1');
         if (result.rows.length === 0) {
@@ -40,44 +45,47 @@ app.get('/estado-ventas', async (req, res) => {
     } catch (error) { res.status(500).json({ error: 'Error al obtener estado de ventas.' }); }
 });
 
-app.get('/todos-los-cartones', async (req, res) => {
+app.post('/api/toggle-ventas', async (req, res) => {
+    try {
+        const result = await pool.query('UPDATE estado_sistema SET ventas_activas = NOT ventas_activas WHERE id = 1 RETURNING ventas_activas');
+        const nuevoEstado = result.rows[0].ventas_activas;
+        res.status(200).json({ 
+            message: `Ventas ahora están ${nuevoEstado ? 'ABIERTAS' : 'CERRADAS'}.`,
+            ventas_activas: nuevoEstado 
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Error interno al cambiar estado.' });
+    }
+});
+
+app.get('/api/todos-los-cartones', async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM cartones ORDER BY id ASC");
         res.status(200).json(result.rows);
     } catch (error) { res.status(500).json({ error: 'Error al obtener todos los cartones.' }); }
 });
 
-app.get('/cartones-disponibles', async (req, res) => {
+app.get('/api/cartones-disponibles', async (req, res) => {
     try {
         const result = await pool.query("SELECT id, numeros, status_venta FROM cartones WHERE status_venta != 'vendido' ORDER BY id ASC");
         res.status(200).json(result.rows);
     } catch (error) { res.status(500).json({ error: 'Error al obtener cartones.' }); }
 });
 
-app.get('/ventas', async (req, res) => {
+app.get('/api/ventas', async (req, res) => {
+    const client = await pool.connect();
     try {
-        // --- ¡CONSULTA EXPLÍCITA Y A PRUEBA DE FALLOS! ---
-        const query = `
-            SELECT
-                id_venta,
-                fecha_venta,
-                nombre_comprador,
-                whatsapp,
-                info_transaccion,
-                cartones_comprados,
-                comprobante_url
-            FROM ventas
-            ORDER BY fecha_venta DESC
-        `;
-        const result = await pool.query(query);
+        const query = `SELECT id_venta, fecha_venta, nombre_comprador, whatsapp, info_transaccion, cartones_comprados, comprobante_url FROM ventas ORDER BY fecha_venta DESC`;
+        const result = await client.query(query);
         res.status(200).json(result.rows);
     } catch (error) {
-        console.error('Error al obtener las ventas:', error);
         res.status(500).json({ error: 'Error interno al obtener las ventas.' });
+    } finally {
+        client.release();
     }
 });
 
-app.post('/guardar-lote-cartones', express.json(), async (req, res) => {
+app.post('/api/guardar-lote-cartones', express.json(), async (req, res) => {
     const cartones = req.body;
     const client = await pool.connect();
     try {
@@ -99,7 +107,7 @@ app.post('/guardar-lote-cartones', express.json(), async (req, res) => {
     }
 });
 
-app.post('/reservar-carton/:id', express.json(), async (req, res) => {
+app.post('/api/reservar-carton/:id', express.json(), async (req, res) => {
     const { id } = req.params;
     const client = await pool.connect();
     try {
@@ -110,7 +118,7 @@ app.post('/reservar-carton/:id', express.json(), async (req, res) => {
             await client.query('ROLLBACK');
             return res.status(409).json({ error: 'Este cartón ya no está disponible.' });
         }
-        const updateQuery = "UPDATE cartones SET status_venta = 'reservado', reservado_hasta = NULL WHERE id = $1";
+        const updateQuery = "UPDATE cartones SET status_venta = 'reservado' WHERE id = $1";
         await client.query(updateQuery, [id]);
         await client.query('COMMIT');
         res.status(200).json({ message: `¡Cartón #${id} reservado con éxito!` });
@@ -122,24 +130,16 @@ app.post('/reservar-carton/:id', express.json(), async (req, res) => {
     }
 });
 
-app.post('/liberar-reserva/:id', express.json(), async (req, res) => {
+app.post('/api/liberar-reserva/:id', express.json(), async (req, res) => {
     const { id } = req.params;
-    const client = await pool.connect();
     try {
-        await client.query('BEGIN');
         const updateQuery = `UPDATE cartones SET status_venta = 'disponible', reservado_hasta = NULL WHERE id = $1 AND status_venta = 'reservado'`;
-        await client.query(updateQuery, [id]);
-        await client.query('COMMIT');
+        await pool.query(updateQuery, [id]);
         res.status(200).json({ message: `Reserva para el cartón #${id} liberada.` });
-    } catch (error) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: 'Error al liberar la reserva.' });
-    } finally {
-        client.release();
-    }
+    } catch (error) { res.status(500).json({ error: 'Error interno al liberar la reserva.' }); }
 });
 
-app.post('/confirmar-compra', upload.single('comprobante'), async (req, res) => {
+app.post('/api/confirmar-compra', upload.single('comprobante'), async (req, res) => {
     const { nombre, whatsapp, transaccion, cartonesIds } = req.body;
     const comprobante = req.file;
     if (!nombre || !whatsapp || !transaccion || !cartonesIds || !comprobante) return res.status(400).json({ error: 'Faltan datos en el formulario.' });
@@ -150,25 +150,22 @@ app.post('/confirmar-compra', upload.single('comprobante'), async (req, res) => 
         const placeholders = idsArray.map((_, i) => `$${i + 1}`).join(',');
         const updateCartonesQuery = `UPDATE cartones SET status_venta = 'vendido', esta_activo = true WHERE id IN (${placeholders})`;
         await client.query(updateCartonesQuery, idsArray);
-        const nombreArchivo = `${Date.now()}-${comprobante.originalname}`;
-        const { error: uploadError } = await supabase.storage.from('comprobantes').upload(nombreArchivo, comprobante.buffer, { contentType: comprobante.mimetype });
-        if (uploadError) throw uploadError;
-        const { data: { publicUrl } } = supabase.storage.from('comprobantes').getPublicUrl(nombreArchivo);
+        
         const insertVentaQuery = `INSERT INTO ventas (nombre_comprador, whatsapp, info_transaccion, cartones_comprados, comprobante_url) VALUES ($1, $2, $3, $4, $5)`;
-        const ventaValues = [nombre, whatsapp, transaccion, JSON.stringify(idsArray), publicUrl];
+        const ventaValues = [nombre, whatsapp, transaccion, JSON.stringify(idsArray), comprobante.originalname]; // Guardamos el nombre del archivo
         await client.query(insertVentaQuery, ventaValues);
+        
         await client.query('COMMIT');
         res.status(200).json({ message: '¡Compra confirmada con éxito!' });
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('Error al confirmar la compra:', error);
         res.status(500).json({ error: 'Error interno al procesar la compra.' });
     } finally {
         client.release();
     }
 });
 
-app.delete('/todos-los-cartones', async (req, res) => {
+app.delete('/api/todos-los-cartones', async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
@@ -184,66 +181,59 @@ app.delete('/todos-los-cartones', async (req, res) => {
     }
 });
 
-app.delete('/ventas', async (req, res) => {
+app.delete('/api/ventas', async (req, res) => {
     try {
         await pool.query('DELETE FROM ventas');
         res.status(200).json({ message: 'El registro de ventas ha sido borrado.' });
-    } catch (error) {
-        console.error('Error al borrar ventas:', error);
-        res.status(500).json({ error: 'Error interno al borrar el registro de ventas.' });
-    }
+    } catch (error) { res.status(500).json({ error: 'Error interno al borrar el registro de ventas.' }); }
 });
-app.post('/resetear-venta', express.json(), async (req, res) => {
+
+app.post('/api/resetear-venta', express.json(), async (req, res) => {
+    const client = await pool.connect();
     try {
+        await client.query('BEGIN');
         const query = `UPDATE cartones SET status_venta = 'disponible', esta_activo = false, reservado_hasta = NULL`;
-        await pool.query(query);
-        await pool.query('UPDATE estado_sistema SET ventas_activas = true WHERE id = 1');
+        await client.query(query);
+        await client.query('UPDATE estado_sistema SET ventas_activas = true WHERE id = 1');
+        await client.query('COMMIT');
         res.status(200).json({ message: '¡Todos los cartones han sido puestos a la venta!' });
     } catch (error) {
+        await client.query('ROLLBACK');
         res.status(500).json({ error: 'Error interno al resetear la venta.' });
+    } finally {
+        client.release();
     }
 });
 
-app.post('/toggle-ventas', express.json(), async (req, res) => {
-    try {
-        const estadoActualResult = await pool.query('SELECT ventas_activas FROM estado_sistema WHERE id = 1');
-        const nuevoEstado = !estadoActualResult.rows[0].ventas_activas;
-        await pool.query('UPDATE estado_sistema SET ventas_activas = $1 WHERE id = 1', [nuevoEstado]);
-        res.status(200).json({
-            message: `Ventas ahora están ${nuevoEstado ? 'ABIERTAS' : 'CERRADAS'}.`,
-            ventas_activas: nuevoEstado
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Error al cambiar estado de venta.' });
-    }
-});
-
-// --- ¡NUEVA RUTA AÑADIDA! ---
-app.post('/toggle-estado-juego/:id', express.json(), async (req, res) => {
+app.post('/api/desactivar-carton/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const query = `
-            UPDATE cartones
-            SET esta_activo = NOT esta_activo
-            WHERE id = $1
-            RETURNING esta_activo;
-        `;
+        const updateQuery = `UPDATE cartones SET status_venta = 'disponible', esta_activo = false, reservado_hasta = NULL WHERE id = $1`;
+        await pool.query(updateQuery, [id]);
+        res.status(200).json({ message: `Cartón #${id} ha sido desactivado y puesto a la venta.` });
+    } catch (error) {
+        res.status(500).json({ error: 'Error interno al desactivar el cartón.' });
+    }
+});
+
+app.post('/api/toggle-estado-juego/:id', express.json(), async (req, res) => {
+    const { id } = req.params;
+    try {
+        const query = `UPDATE cartones SET esta_activo = NOT esta_activo WHERE id = $1 RETURNING esta_activo;`;
         const result = await pool.query(query, [id]);
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Cartón no encontrado.' });
-        }
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Cartón no encontrado.' });
         const nuevoEstado = result.rows[0].esta_activo;
-        res.status(200).json({
+        res.status(200).json({ 
             message: `Cartón #${id} ahora está ${nuevoEstado ? 'ACTIVO' : 'INACTIVO'}.`,
             esta_activo: nuevoEstado
         });
     } catch (error) {
-        console.error(`Error al cambiar estado del cartón #${id}:`, error);
         res.status(500).json({ error: 'Error interno al cambiar el estado del cartón.' });
     }
 });
 
-// --- INICIAR SERVIDOR ---
+
+// --- INICIO DEL SERVIDOR ---
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor iniciado y escuchando en el puerto ${PORT}`);
 });
