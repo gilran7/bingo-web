@@ -111,8 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const comprador = venta.nombre_comprador || 'N/A';
                     const whatsapp = venta.whatsapp || 'N/A';
                     const transaccion = venta.info_transaccion || 'N/A';
-                    const cartones = venta.cartones_comprados ? JSON.parse(venta.cartones_comprados).join(', ') : 'N/A';
-                    const comprobante = venta.comprobante_url ? `<a href="${venta.comprobante_url}" target="_blank" rel="noopener noreferrer">Ver</a>` : 'No disponible';
+                    // CÓDIGO CORREGIDO
+                    const cartones = venta.cartones_comprados ? venta.cartones_comprados.join(', ') : 'N/A';
+                    const comprobante = venta.comprobante_url || 'No disponible'; // Por ahora, solo mostramos el nombre del archivo
                     const fila = `<tr><td>${fecha}</td><td>${comprador}</td><td>${whatsapp}</td><td>${transaccion}</td><td>${cartones}</td><td>${comprobante}</td></tr>`;
                     tbody.innerHTML += fila;
                 } catch (e) {
