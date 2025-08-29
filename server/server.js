@@ -4,12 +4,14 @@ const { Pool } = require('pg');
 const multer = require('multer');
 const path = require('path'); // Módulo para manejar rutas de archivos
 
-// --- CONFIGURACIÓN INICIAL ---
+// CÓDIGO CORREGIDO Y ROBUSTO
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000; // Simplificado para evitar ambigüedades
+
+const connectionString = process.env.DATABASE_URL || "postgresql://bingo_user:bingopassword123@localhost:5432/bingo_db";
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: connectionString,
 });
 
 // Configuración de CORS
@@ -250,6 +252,6 @@ app.post('/api/toggle-estado-juego/:id', express.json(), async (req, res) => {
 });
 
 // --- INICIO DEL SERVIDOR ---
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor iniciado y escuchando en el puerto ${PORT}`);
+app.listen(PORT, '127.0.0.1', () => {
+  console.log(`Servidor iniciado y escuchando en http://127.0.0.1:${PORT}`);
 });
