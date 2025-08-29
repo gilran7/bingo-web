@@ -10,10 +10,9 @@ const PORT = process.env.PORT || 3000;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // Ya no se necesita SSL para la conexión local
 });
 
-// Configuración de CORS simplificada
+// Configuración de CORS
 const corsOptions = {
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -21,15 +20,29 @@ const corsOptions = {
   credentials: true
 };
 
-const upload = multer({ storage: multer.memoryStorage() });
+// --- CONFIGURACIÓN DE UPLOAD (MULTER) ---
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        // La carpeta 'uploads' debe estar en el directorio raíz del proyecto
+        cb(null, path.join(__dirname, '..', 'uploads'))
+    },
+    filename: function (req, file, cb) {
+        // Añade un timestamp para evitar nombres de archivo repetidos
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+        cb(null, 'comprobante-' + uniqueSuffix + path.extname(file.originalname))
+    }
+});
+const upload = multer({ storage: storage });
 
 // --- MIDDLEWARE ---
 app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 
-// --- SERVIR ARCHIVOS ESTÁTICOS DEL FRONTEND ---
-// Esta línea sirve los archivos HTML, CSS, JS, etc., desde la carpeta 'public'
-app.use(express.static(path.join(__dirname, 'public')));
+// --- SERVIR ARCHIVOS ESTÁTICOS ---
+// Servir el frontend principal (HTML, CSS, JS del cliente)
+app.use(express.static(path.join(__dirname, '..'))); 
+// Servir la carpeta 'uploads' para que los comprobantes sean accesibles desde la web
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 
 // --- RUTAS DE LA API ---
@@ -152,7 +165,11 @@ app.post('/api/confirmar-compra', upload.single('comprobante'), async (req, res)
         await client.query(updateCartonesQuery, idsArray);
         
         const insertVentaQuery = `INSERT INTO ventas (nombre_comprador, whatsapp, info_transaccion, cartones_comprados, comprobante_url) VALUES ($1, $2, $3, $4, $5)`;
-        const ventaValues = [nombre, whatsapp, transaccion, JSON.stringify(idsArray), comprobante.originalname]; // Guardamos el nombre del archivo
+        
+        // ¡LÍNEA CORREGIDA! Guardamos la ruta web, no el nombre original del archivo.
+        const comprobanteUrl = `/uploads/${comprobante.filename}`;
+        const ventaValues = [nombre, whatsapp, transaccion, JSON.stringify(idsArray), comprobanteUrl];
+        
         await client.query(insertVentaQuery, ventaValues);
         
         await client.query('COMMIT');
@@ -231,7 +248,6 @@ app.post('/api/toggle-estado-juego/:id', express.json(), async (req, res) => {
         res.status(500).json({ error: 'Error interno al cambiar el estado del cartón.' });
     }
 });
-
 
 // --- INICIO DEL SERVIDOR ---
 app.listen(PORT, '0.0.0.0', () => {
