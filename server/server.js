@@ -2,12 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const multer = require('multer');
-const path = require('path'); // Módulo para manejar rutas de archivos
+const path = require('path');
 
-// CÓDIGO CORREGIDO Y ROBUSTO
+// --- CONFIGURACIÓN INICIAL ROBUSTA ---
 const app = express();
-const PORT = 3000; // Simplificado para evitar ambigüedades
+const PORT = 3000;
 
+// Lógica de conexión con respaldo: usa la variable de entorno de PM2 si existe,
+// de lo contrario, usa la cadena hardcodeada para pruebas manuales.
 const connectionString = process.env.DATABASE_URL || "postgresql://bingo_user:bingopassword123@localhost:5432/bingo_db";
 
 const pool = new Pool({
@@ -22,7 +24,7 @@ const corsOptions = {
   credentials: true
 };
 
-// --- CONFIGURACIÓN DE UPLOAD (MULTER) ---
+// --- CONFIGURACIÓN DE UPLOAD (MULTER) CON GUARDADO EN DISCO ---
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         // La carpeta 'uploads' debe estar en el directorio raíz del proyecto
@@ -37,6 +39,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // --- MIDDLEWARE ---
+app.use(express.json()); // Middleware para parsear JSON
 app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 
@@ -100,7 +103,7 @@ app.get('/api/ventas', async (req, res) => {
     }
 });
 
-app.post('/api/guardar-lote-cartones', express.json(), async (req, res) => {
+app.post('/api/guardar-lote-cartones', async (req, res) => {
     const cartones = req.body;
     const client = await pool.connect();
     try {
@@ -122,7 +125,7 @@ app.post('/api/guardar-lote-cartones', express.json(), async (req, res) => {
     }
 });
 
-app.post('/api/reservar-carton/:id', express.json(), async (req, res) => {
+app.post('/api/reservar-carton/:id', async (req, res) => {
     const { id } = req.params;
     const client = await pool.connect();
     try {
@@ -145,7 +148,7 @@ app.post('/api/reservar-carton/:id', express.json(), async (req, res) => {
     }
 });
 
-app.post('/api/liberar-reserva/:id', express.json(), async (req, res) => {
+app.post('/api/liberar-reserva/:id', async (req, res) => {
     const { id } = req.params;
     try {
         const updateQuery = `UPDATE cartones SET status_venta = 'disponible', reservado_hasta = NULL WHERE id = $1 AND status_venta = 'reservado'`;
@@ -168,7 +171,7 @@ app.post('/api/confirmar-compra', upload.single('comprobante'), async (req, res)
         
         const insertVentaQuery = `INSERT INTO ventas (nombre_comprador, whatsapp, info_transaccion, cartones_comprados, comprobante_url) VALUES ($1, $2, $3, $4, $5)`;
         
-        // ¡LÍNEA CORREGIDA! Guardamos la ruta web, no el nombre original del archivo.
+        // LÓGICA CORREGIDA: Guardamos la ruta web del nuevo archivo, no el nombre original.
         const comprobanteUrl = `/uploads/${comprobante.filename}`;
         const ventaValues = [nombre, whatsapp, transaccion, JSON.stringify(idsArray), comprobanteUrl];
         
@@ -207,7 +210,7 @@ app.delete('/api/ventas', async (req, res) => {
     } catch (error) { res.status(500).json({ error: 'Error interno al borrar el registro de ventas.' }); }
 });
 
-app.post('/api/resetear-venta', express.json(), async (req, res) => {
+app.post('/api/resetear-venta', async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
@@ -235,7 +238,7 @@ app.post('/api/desactivar-carton/:id', async (req, res) => {
     }
 });
 
-app.post('/api/toggle-estado-juego/:id', express.json(), async (req, res) => {
+app.post('/api/toggle-estado-juego/:id', async (req, res) => {
     const { id } = req.params;
     try {
         const query = `UPDATE cartones SET esta_activo = NOT esta_activo WHERE id = $1 RETURNING esta_activo;`;
