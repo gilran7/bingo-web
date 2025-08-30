@@ -37,8 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
             total += PRECIO_POR_CARTON;
         });
     }
-    // CÓDIGO CORREGIDO
-    totalDisplay.textContent = `Total a Pagar: ${total} Bs`;
+    // CÓDIGO CORREGIDO Y FINAL
+    totalAPagarSpan.textContent = `${total} Bs`;
     validarFormulario();
 }
 

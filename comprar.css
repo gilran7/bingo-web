@@ -231,56 +231,6 @@ h1 {
     cursor: not-allowed;
 }
 
-/* --- ESTILOS PARA EL CARRITO FLOTANTE --- */
-
-#checkout-section {
-    position: fixed;
-    bottom: 0;
-    left: 50%; /* Lo centramos en la pantalla */
-    transform: translateX(-50%); /* Ajuste fino para el centrado */
-    width: 90%; /* Ocupará el 90% del ancho */
-    max-width: 800px; /* Un ancho máximo para pantallas grandes */
-
-    background-color: #ffffff;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
-    padding: 20px;
-    box-sizing: border-box;
-    transition: transform 0.3s ease-in-out;
-    z-index: 1000;
-    border-top-left-radius: 12px; /* Esquinas redondeadas para un look moderno */
-    border-top-right-radius: 12px;
-}
-
-/* --- ¡NUEVO Y MEJORADO! ESTILOS PARA LA EXPERIENCIA MÓVIL --- */
-@media (max-width: 768px) {
-    #checkout-section {
-        position: fixed;
-        bottom: 10px; /* Espacio desde abajo */
-        left: 50%; /* Lo movemos al centro */
-        transform: translateX(-50%); /* Ajuste fino para centrarlo perfectamente */
-        width: 90%; /* Ocupa el 90% del ancho, dejando márgenes */
-        max-width: 400px; /* Un ancho máximo para que no sea demasiado grande */
-        
-        background: white;
-        border: 1px solid #ddd;
-        border-top: 3px solid #3498db;
-        border-radius: 12px; /* Bordes más redondeados */
-        box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
-        
-        z-index: 100;
-        padding: 15px;
-        box-sizing: border-box;
-        
-        max-height: 60vh; /* Altura máxima (60% de la pantalla) */
-        overflow-y: auto; /* Scroll si el contenido es largo */
-    }
-
-    #cartones-disponibles-container {
-        /* Espacio extra al final para que los últimos cartones no queden ocultos */
-        padding-bottom: 300px; 
-    }
-}
-
 /* --- ESTILOS PARA EL LAYOUT DE COMPRA --- */
 
 /* Contenedor principal para pantallas grandes (computadoras) */
