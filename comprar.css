@@ -280,3 +280,64 @@ h1 {
         padding-bottom: 300px; 
     }
 }
+
+/* --- ESTILOS PARA EL LAYOUT DE COMPRA --- */
+
+/* Contenedor principal para pantallas grandes (computadoras) */
+@media (min-width: 992px) { /* Se aplica solo a pantallas de 992px o más */
+    .compra-container {
+        display: flex;
+        align-items: flex-start;
+        gap: 2rem; /* Espacio entre la lista de cartones y el carrito */
+    }
+
+    .cartones-grid-container {
+        flex: 3; /* Ocupa 3/4 del espacio */
+    }
+
+    .carrito-modal {
+        flex: 1; /* Ocupa 1/4 del espacio */
+        position: sticky; /* Se queda fijo al hacer scroll */
+        top: 2rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        padding: 1.5rem;
+    }
+}
+
+/* Para pantallas pequeñas (teléfonos), mantenemos el comportamiento de barra inferior pero controlado */
+@media (max-width: 991px) {
+    .carrito-modal {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: white;
+        padding: 1rem;
+        box-shadow: 0 -4px 15px rgba(0,0,0,0.1);
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+        
+        /* ESTA ES LA CLAVE: limitamos su altura y permitimos scroll interno */
+        max-height: 60vh; /* Ocupa como máximo el 60% de la altura de la pantalla */
+        overflow-y: auto; /* Si el contenido es más alto, aparece una barra de scroll */
+    }
+
+    /* Añadimos un espacio al final de la lista de cartones para que no quede tapado */
+    .cartones-grid-container {
+        padding-bottom: 200px; /* Un espacio generoso para el carrito */
+    }
+}
+
+.info-pago {
+    background-color: #e9f5ff; /* Un azul muy claro */
+    border: 1px solid #b3d7ff; /* Un borde azul claro */
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1.5rem auto;
+    max-width: 600px;
+    text-align: center;
+}
+.info-pago p {
+    margin: 0.5rem 0;
+}

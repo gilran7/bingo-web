@@ -7,44 +7,58 @@
     <link rel="stylesheet" href="comprar.css">
 </head>
 <body>
-    <div class="store-container">
+    <div class="main-content-area"> <!-- Contenedor general para el contenido de la página -->
         <p class="support-link" style="text-align: center; margin-bottom: 20px;">
             Si tienes algún problema con tu compra, comunícate con Soporte por este link: 
             <a href="https://wa.link/b3yao5" target="_blank" rel="noopener noreferrer">Contactar a Soporte</a>
         </p>
 
-        <h1>Cartones Disponibles</h1>
-        <p class="instructions">¡Elige tus cartones de la suerte para la próxima ronda!</p>
-        
-        <div id="mensaje-ventas-cerradas" class="hidden" style="text-align: center; padding: 40px; border: 2px dashed #ccc; margin: 20px; border-radius: 10px;">
-            <h2>Venta Cerrada Temporalmente</h2>
-            <p>Estamos en medio de una ronda de juego. La venta de cartones se reanudará en cuanto termine. ¡Gracias por tu paciencia!</p>
+        <!-- INICIO: Bloque de Información de Pago -->
+        <div class="info-pago">
+            <p><strong>Pago Móvil:</strong> 04241081420 / C.I. 10.280.538 / Mercantil</p>
+            <p>Si necesitas otro método de pago, por favor contacta a Soporte.</p>
         </div>
+        <!-- FIN: Bloque de Información de Pago -->
 
-        <div id="cartones-disponibles-container">
-            <p class="mensaje-feedback">Cargando cartones...</p>
-        </div>
-        <div id="cart-spacer"></div>
-    </div>
+        <!-- INICIO: Contenedor principal para el layout de dos columnas -->
+        <div class="compra-container">
 
-    <div id="checkout-section" class="hidden">
-        <h2>Tu Selección</h2>
-        <div id="carrito-container">
-            <ul id="lista-carrito"></ul>
-            <div id="total-container">
-                <strong>Total a Pagar: <span id="total-a-pagar">0.00</span> €</strong>
+            <div class="cartones-grid-container"> <!-- Columna de Cartones -->
+                <h1>Cartones Disponibles</h1>
+                <p class="instructions">¡Elige tus cartones de la suerte para la próxima ronda!</p>
+                
+                <div id="mensaje-ventas-cerradas" class="hidden" style="text-align: center; padding: 40px; border: 2px dashed #ccc; margin: 20px; border-radius: 10px;">
+                    <h2>Venta Cerrada Temporalmente</h2>
+                    <p>Estamos en medio de una ronda de juego. La venta de cartones se reanudará en cuanto termine. ¡Gracias por tu paciencia!</p>
+                </div>
+
+                <div id="cartones-disponibles-container">
+                    <p class="mensaje-feedback">Cargando cartones...</p>
+                </div>
+                <div id="cart-spacer"></div>
             </div>
-        </div>
-        <div class="checkout-form-container">
-            <h3>Completa tus Datos para Finalizar</h3>
-            <form id="purchase-form" novalidate>
-                <div class="form-group"><label for="nombre">Nombre Completo</label><input type="text" id="nombre" name="nombre" required></div>
-                <div class="form-group"><label for="whatsapp">Número de WhatsApp</label><input type="tel" id="whatsapp" name="whatsapp" required pattern="[0-9]{9,15}"></div>
-                <div class="form-group"><label for="transaccion">Últimos 4 Dígitos de la Transacción</label><input type="text" id="transaccion" name="transaccion" required minlength="4" maxlength="4" pattern="[0-9]{4}"></div>
-                <div class="form-group"><label for="comprobante">Adjuntar Comprobante de Pago</label><input type="file" id="comprobante" name="comprobante" required accept="image/*"></div>
-                <button type="submit" id="submit-purchase-button" class="submit-button" disabled>Confirmar Compra</button>
-            </form>
-        </div>
+
+            <div id="checkout-section" class="carrito-modal hidden"> <!-- Columna del Carrito -->
+                <h2>Tu Selección</h2>
+                <div id="carrito-container">
+                    <ul id="lista-carrito"></ul>
+                    <div id="total-container">
+                        <strong>Total a Pagar: <span id="total-a-pagar">0.00</span> €</strong>
+                    </div>
+                </div>
+                <div class="checkout-form-container">
+                    <h3>Completa tus Datos para Finalizar</h3>
+                    <form id="purchase-form" novalidate>
+                        <div class="form-group"><label for="nombre">Nombre Completo</label><input type="text" id="nombre" name="nombre" required></div>
+                        <div class="form-group"><label for="whatsapp">Número de WhatsApp</label><input type="tel" id="whatsapp" name="whatsapp" required pattern="[0-9]{9,15}"></div>
+                        <div class="form-group"><label for="transaccion">Últimos 4 Dígitos de la Transacción</label><input type="text" id="transaccion" name="transaccion" required minlength="4" maxlength="4" pattern="[0-9]{4}"></div>
+                        <div class="form-group"><label for="comprobante">Adjuntar Comprobante de Pago</label><input type="file" id="comprobante" name="comprobante" required accept="image/*"></div>
+                        <button type="submit" id="submit-purchase-button" class="submit-button" disabled>Confirmar Compra</button>
+                    </form>
+                </div>
+            </div>
+
+        </div> <!-- FIN: Contenedor principal para el layout -->
     </div>
 
     <script src="comprar.js"></script>

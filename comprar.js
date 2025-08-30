@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const BACKEND_URL = '/api';
-    const PRECIO_POR_CARTON = 1.00;
+    const PRECIO_POR_CARTON = 100;
 
     const cartonesContainer = document.getElementById('cartones-disponibles-container');
     const mensajeVentasCerradas = document.getElementById('mensaje-ventas-cerradas');
@@ -37,7 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
             total += PRECIO_POR_CARTON;
         });
     }
-    totalAPagarSpan.textContent = total.toFixed(2);
+    // CÓDIGO CORREGIDO
+    totalDisplay.textContent = `Total a Pagar: ${total} Bs`;
     validarFormulario();
 }
 
