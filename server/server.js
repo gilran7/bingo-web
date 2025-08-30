@@ -4,16 +4,13 @@ const { Pool } = require('pg');
 const multer = require('multer');
 const path = require('path');
 
-// --- CONFIGURACIÓN INICIAL ROBUSTA ---
+// --- CONFIGURACIÓN INICIAL ---
 const app = express();
 const PORT = 3000;
 
-// Lógica de conexión con respaldo: usa la variable de entorno de PM2 si existe,
-// de lo contrario, usa la cadena hardcodeada para pruebas manuales.
-const connectionString = process.env.DATABASE_URL || "postgresql://bingo_user:bingopassword123@localhost:5432/bingo_db";
-
+// ÚNICA FUENTE DE LA VERDAD: La contraseña es proporcionada por el entorno de ejecución (PM2).
 const pool = new Pool({
-  connectionString: connectionString,
+  connectionString: process.env.DATABASE_URL,
 });
 
 // Configuración de CORS
@@ -39,18 +36,18 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // --- MIDDLEWARE ---
-app.use(express.json()); // Middleware para parsear JSON
+app.use(express.json());
 app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 
 // --- SERVIR ARCHIVOS ESTÁTICOS ---
-// Servir el frontend principal (HTML, CSS, JS del cliente)
+// Servir el frontend principal
 app.use(express.static(path.join(__dirname, '..'))); 
-// Servir la carpeta 'uploads' para que los comprobantes sean accesibles desde la web
+// Servir la carpeta 'uploads' para que los comprobantes sean accesibles
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 
-// --- RUTAS DE LA API ---
+// --- RUTAS DE LA API (Sin cambios desde aquí) ---
 
 app.get('/api/estado-ventas', async (req, res) => {
     try {
@@ -171,7 +168,6 @@ app.post('/api/confirmar-compra', upload.single('comprobante'), async (req, res)
         
         const insertVentaQuery = `INSERT INTO ventas (nombre_comprador, whatsapp, info_transaccion, cartones_comprados, comprobante_url) VALUES ($1, $2, $3, $4, $5)`;
         
-        // LÓGICA CORREGIDA: Guardamos la ruta web del nuevo archivo, no el nombre original.
         const comprobanteUrl = `/uploads/${comprobante.filename}`;
         const ventaValues = [nombre, whatsapp, transaccion, JSON.stringify(idsArray), comprobanteUrl];
         
